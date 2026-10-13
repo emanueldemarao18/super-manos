@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Smoke test: every src/*.js must parse, and index.html must load every one of them.
+# Smoke test: all src/*.js parse (both games); platformer/index.html loads every platformer script.
 set -u
 cd "$(dirname "$0")/.."
+for dir in . platformer; do (cd "$dir" && for f in src/*.js; do node --check "$f" || echo "FAIL syntax: $dir/$f"; done) ; done | grep FAIL && exit 1
+cd platformer
 fail=0
 for f in src/*.js; do
   node --check "$f" || { echo "FAIL syntax: $f"; fail=1; }

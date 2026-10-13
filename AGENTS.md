@@ -5,14 +5,11 @@ in the order set in `index.html` and share the global `SM` object (defined in `s
 All in-game text is in European Portuguese.
 
 ## Current state (read first)
-Two games are being built in this folder at the same time. They share `SM.*` names, so they collide:
-- **Platformer** (Mario-style, 4 levels): `game.js`, `levels.js`, `render.js`, `main.js`, `index.html`.
-- **Fighting game** (in progress): `moves.js`, `rig.js`, and a `sim.js` it refers to that doesn't exist yet.
-  It has rewritten `config.js`, `characters.js`, `audio.js` and `input.js`.
-
-As a result, the platformer doesn't run on `main` right now. Fix this **before** adding features: move
-one game to its own folder (e.g. `fight/`) or its own repo, and give each game its own `config`,
-`characters`, `audio` and `input` files.
+Two games share this repo:
+- **Platformer** (Mario-style, 4 levels, working): everything lives in `platformer/`. Open `platformer/index.html`.
+- **Fighting game** (in progress, by another agent): the root `index.html` + `src/`. It has rewritten
+  `config.js`, `characters.js`, `audio.js` and `input.js`. The root still holds old copies of the platformer's
+  `game.js`, `levels.js`, `render.js` and `main.js`; their owner should delete them once the fight game has its own.
 
 ## Priorities
 1. A game that runs from `index.html` beats everything else. Never leave `main` unplayable.
@@ -28,9 +25,9 @@ one game to its own folder (e.g. `fight/`) or its own repo, and give each game i
 
 | Area | Files |
 |---|---|
-| Platformer | `src/game.js`, `src/levels.js`, `src/render.js`, `src/main.js` |
-| Fighting game | `src/moves.js`, `src/rig.js`, `src/sim.js` (and its own folder once split) |
-| Shared — small separate commits, announce them | `src/config.js`, `src/characters.js`, `src/audio.js`, `src/input.js`, `index.html`, `AGENTS.md` |
+| Platformer | `platformer/**` |
+| Fighting game | root `index.html`, `src/**` |
+| Shared — small separate commits, announce them | `AGENTS.md`, `CLAUDE.md`, `scripts/`, `.gitignore` |
 
 Shared files are APIs. Changing a name or signature in one (e.g. `SM.Input.held('left')` →
 bitmask `SM.BTN`) breaks every caller. Keep the old API working, or update all callers in the same commit.
