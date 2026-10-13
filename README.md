@@ -28,6 +28,12 @@ Plain JavaScript with `<canvas>`. No dependencies, no build step. In-game text i
 - **Super** (full meter): ↓↘→↓↘→ + punch, or heavy punch + heavy kick together.
 - In one-player modes, player 1 can also use player 2's keys. **M** mutes.
 
+**Play it in the browser:** https://emanueldemarao18.github.io/super-manos/
+
+**Online:** choose ONLINE → CRIAR SALA and send the link (or the 5-letter code) to a friend; opening the link joins the room. The connection is peer-to-peer over WebRTC (via PeerJS's public servers), with the room creator acting as host.
+
+**Phones and tablets:** touch controls appear automatically. There's a joystick on the left, punch/kick buttons and SUPER on the right, and you play in landscape. Online works between phones and computers.
+
 ### Super Manos (platformer)
 Mario-style platformer with 4 levels. Open `platformer/index.html`.
 
