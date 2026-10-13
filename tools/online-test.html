@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8">
+  <title>Online Test</title>
+  <style>
+    body { margin: 0; background: #111; color: #ccc; font: 12px sans-serif; display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; }
+    iframe { width: 48vw; height: 27vw; border: 1px solid #444; }
+    p { width: 100%; margin: 0; }
+  </style>
+</head>
+<body>
+  <!-- Ferramenta de desenvolvimento: anfitrião (esquerda) e convidado (direita) na mesma página,
+       para testar o modo online sem dois computadores. Clica num jogo para lhe dar o teclado.
+       ?auto=1 cria a sala na esquerda e entra com a direita automaticamente. -->
+  <p>Esquerda: anfitrião · Direita: convidado</p>
+  <iframe id="host" src="../index.html"></iframe>
+  <iframe id="guest" src="about:blank"></iframe>
+  <script>
+    const host = document.getElementById('host'), guest = document.getElementById('guest');
+    if (new URLSearchParams(location.search).get('auto')) {
+      host.onload = () => {
+        const H = host.contentWindow;
+        H.SM.App.S.screen = 'online';
+        H.SM.Net.host();
+        H.SM.App.S.screen = 'host';
+        const wait = setInterval(() => {
+          if (H.SM.Net.code && H.SM.Net.status.startsWith('À ESPERA')) {
+            clearInterval(wait);
+            guest.src = '../index.html?sala=' + H.SM.Net.code;
+          }
+        }, 200);
+      };
+    }
+  </script>
+</body>
+</html>

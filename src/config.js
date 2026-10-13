@@ -37,3 +37,6 @@ SM.shade = (hex, f) => {
 
 SM.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 SM.lerp = (a, b, k) => a + (b - a) * k;
+
+// acessível de fora (ferramentas de teste em iframes)
+window.SM = SM;
