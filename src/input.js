@@ -62,11 +62,13 @@ SM.Input = (() => {
     // chamado uma vez por tick lógico
     poll() {
       const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
+      const touch = SM.Touch ? SM.Touch.read() : 0; // telemóvel: joga como J1
       for (let p = 0; p < 2; p++) {
         let h = keyBits(p);
         if (shared) h = p === 0 ? keyBits(0) | keyBits(1) : 0;
         h |= readPad(pads[p]);
         if (shared && p === 0) h |= readPad(pads[1]);
+        if (p === 0) h |= touch;
         held[p] = h | latch[p];
         pressed[p] = held[p] & ~prev[p];
         prev[p] = h;

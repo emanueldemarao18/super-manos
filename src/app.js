@@ -337,7 +337,7 @@ SM.App = (() => {
     fighterAt(ctx, a, pa, W / 2 - 60, SM.FLOOR, 1, 1.1);
     fighterAt(ctx, b, pb, W / 2 + 60, SM.FLOOR, -1, 1.1);
     logo(ctx, 52, 1.1);
-    if (Math.floor(S.t / 30) % 2) U.text(ctx, 'CARREGA EM ENTER', W / 2, H - 10, { size: 10, align: 'center', color: '#fff' });
+    if (Math.floor(S.t / 30) % 2) U.text(ctx, SM.Touch.active ? 'TOCA NO ECRÃ' : 'CARREGA EM ENTER', W / 2, H - 10, { size: 10, align: 'center', color: '#fff' });
   }
 
   function drawMenu(ctx) {
@@ -349,7 +349,7 @@ SM.App = (() => {
       U.text(ctx, (on ? '▶ ' : '') + m.label, W / 2, y, { size: on ? 14 : 11, align: 'center', color: on ? '#ffe040' : '#ccc', font: SM.FONT });
     });
     U.text(ctx, MENU[S.menu].hint, W / 2, H - 22, { size: 8, align: 'center', color: '#9ab' });
-    U.text(ctx, '↑↓ ESCOLHER   F / ENTER CONFIRMAR   G VOLTAR   M SOM', W / 2, H - 9, { size: 6, align: 'center', color: '#789' });
+    U.text(ctx, SM.Touch.active ? 'JOYSTICK ESCOLHER   SOCO CONFIRMAR   ◀ VOLTAR' : '↑↓ ESCOLHER   F / ENTER CONFIRMAR   G VOLTAR   M SOM', W / 2, H - 9, { size: 6, align: 'center', color: '#789' });
   }
 
   function drawDifficulty(ctx) {
@@ -485,6 +485,7 @@ SM.App = (() => {
       ['Pontapé fraco · forte', 'V · B', ', · .  (ou 1 · 2)'],
       ['Pausa', 'ENTER / ESC', 'ENTER (numpad)'],
       ['Comando de consola', 'X Y = socos · A B = pontapés · RB = super', ''],
+      ['Telemóvel', 'joystick à esquerda · botões à direita · SUPER', ''],
     ];
     rows.forEach((r, i) => {
       const y = 50 + i * 16, c = i === 0 ? '#ffe040' : '#fff';
@@ -578,6 +579,7 @@ SM.App = (() => {
 
   function draw(ctx) {
     SM.NetUI.update(S.screen);
+    SM.Touch.setScreen(S.screen);
     switch (S.screen) {
       case 'online': drawOnline(ctx); break;
       case 'host': drawHost(ctx); break;
