@@ -13,7 +13,9 @@ SM.App = (() => {
     cur: [0, 1], picked: [null, null], stageSel: 0,
     battle: null, paused: false, pauseSel: 0, showMoves: false,
     ladder: null, stageOrder: null, result: null, continueT: 0,
+    guest: false, onSel: 0,
   };
+  const isVersus = () => S.mode === 'versus' || S.mode === 'online';
 
   const go = (screen) => { S.screen = screen; S.t = 0; };
   const confirmBit = B.lp | B.lk | B.start;
@@ -23,6 +25,7 @@ SM.App = (() => {
     { id: 'arcade', label: 'ARCADE', hint: 'Derrota os manos todos, um a um' },
     { id: 'versus', label: 'VERSUS', hint: '2 jogadores no mesmo teclado ou com comandos' },
     { id: 'cpu', label: 'CONTRA CPU', hint: 'Escolhe o adversário e a dificuldade' },
+    { id: 'online', label: 'ONLINE', hint: 'Joga com amigos à distância: cria uma sala e manda o link' },
     { id: 'training', label: 'TREINO', hint: 'Treina combos contra um boneco' },
     { id: 'controls', label: 'COMANDOS', hint: 'Teclas e golpes especiais' },
   ];
@@ -33,7 +36,7 @@ SM.App = (() => {
     let stage;
     if (S.mode === 'arcade') stage = SM.Stages.list[S.ladder.idx % SM.Stages.list.length];
     else stage = S.stageSel >= SM.Stages.list.length ? SM.Stages.list[Math.random() * SM.Stages.list.length | 0] : SM.Stages.list[S.stageSel];
-    const p2 = S.mode === 'versus' ? new SM.Human(1)
+    const p2 = isVersus() ? new SM.Human(1)
       : S.mode === 'training' ? { read: () => ({ held: 0, pressed: 0 }) }
       : new SM.AI.CPU(S.mode === 'arcade' ? Math.min(3, S.diff + (S.ladder.idx >= 4 ? 1 : 0)) : S.diff);
     S.battle = new SM.Battle({
@@ -57,8 +60,22 @@ SM.App = (() => {
   function update() {
     S.t++;
     I.poll();
+    SM.Net.recording = S.mode === 'online' && SM.Net.role === 'host';
+    if (S.guest) { guestUpdate(); return; }
+    const online = S.mode === 'online';
+    if (online) {
+      SM.Net.tick();
+      if (!SM.Net.connected) { netError(); return; }
+    }
     const any = I.any();
     const p1 = I.pressed(0), p2 = I.pressed(1);
+    // online: só o anfitrião navega nos ecrãs partilhados
+    const nav = online ? p1 : any;
+    updateScreen(any, p1, p2, nav, online);
+    if (online && SM.Net.connected) sendSnapshot();
+  }
+
+  function updateScreen(any, p1, p2, nav, online) {
 
     switch (S.screen) {
       case 'title':
@@ -76,6 +93,7 @@ SM.App = (() => {
           A.sfx('confirm');
           S.mode = MENU[S.menu].id;
           if (S.mode === 'controls') { go('controls'); break; }
+          if (S.mode === 'online') { S.mode = null; S.onSel = 0; go('online'); break; }
           I.setShared(S.mode !== 'versus');
           S.picked = [null, null];
           if (S.mode === 'arcade' || S.mode === 'cpu') go('difficulty');
@@ -97,7 +115,7 @@ SM.App = (() => {
       case 'select': {
         A.music('select');
         // em versus cada jogador escolhe ao mesmo tempo; senão o J1 escolhe os dois (CPU/treino)
-        const versus = S.mode === 'versus';
+        const versus = isVersus();
         const who = versus ? [0, 1] : [S.picked[0] === null ? 0 : 1];
         for (const p of who) {
           const pr = versus ? (p === 0 ? p1 : p2) : p1;
@@ -113,9 +131,10 @@ SM.App = (() => {
           if (pr & (B.left | B.right | B.up | B.down)) A.sfx('select');
           if (pr & confirmBit) { S.picked[p] = S.cur[p]; A.sfx('confirm'); }
           if (pr & backBit) {
+            if (online && p === 1) continue;
             A.sfx('back');
             if (!versus && p === 1) S.picked[0] = null;
-            else go('menu');
+            else leaveToMenu();
           }
         }
         if (S.mode === 'arcade' && S.picked[0] !== null) { startArcade(); break; }
@@ -125,10 +144,10 @@ SM.App = (() => {
 
       case 'stage': {
         const n = SM.Stages.list.length + 1;
-        if (any & B.right) { S.stageSel = (S.stageSel + 1) % n; A.sfx('select'); }
-        if (any & B.left) { S.stageSel = (S.stageSel + n - 1) % n; A.sfx('select'); }
-        if (any & backBit) { S.picked[S.mode === 'versus' ? 1 : 1] = null; A.sfx('back'); go('select'); }
-        if (any & confirmBit && S.t > 2) { A.sfx('confirm'); go(S.mode === 'training' ? 'fightNow' : 'vs'); }
+        if (nav & B.right) { S.stageSel = (S.stageSel + 1) % n; A.sfx('select'); }
+        if (nav & B.left) { S.stageSel = (S.stageSel + n - 1) % n; A.sfx('select'); }
+        if (nav & backBit) { S.picked[1] = null; A.sfx('back'); go('select'); }
+        if (nav & confirmBit && S.t > 2) { A.sfx('confirm'); go(S.mode === 'training' ? 'fightNow' : 'vs'); }
         break;
       }
 
@@ -139,12 +158,12 @@ SM.App = (() => {
       case 'vs':
         A.music('select');
         if (S.t === 1) A.sfx('fight');
-        if (S.t > 150 || (S.t > 40 && any & confirmBit)) startFight();
+        if (S.t > 150 || (S.t > 40 && nav & confirmBit)) startFight();
         break;
 
       case 'fight': {
         const bt = S.battle;
-        if ((p1 | p2) & (B.start | B.back) && bt.phase !== 'over') {
+        if (!online && (p1 | p2) & (B.start | B.back) && bt.phase !== 'over') {
           S.paused = !S.paused; S.pauseSel = 0; S.showMoves = false; A.sfx('select');
           break;
         }
@@ -177,13 +196,40 @@ SM.App = (() => {
               go('vs');
             }
           } else go('continue');
-        } else if (any & confirmBit) {
-          S.picked = S.mode === 'versus' ? [null, null] : [S.picked[0], null];
-          if (S.mode !== 'versus') S.picked = [null, null];
+        } else if (nav & confirmBit) {
+          S.picked = [null, null];
           go('select');
-        } else if (any & backBit) go('menu');
+        } else if (nav & backBit) leaveToMenu();
         break;
       }
+
+      case 'online': {
+        A.music('menu');
+        if (any & (B.up | B.down)) { S.onSel = 1 - S.onSel; A.sfx('select'); }
+        if (any & backBit) { A.sfx('back'); go('menu'); }
+        if (any & confirmBit && S.t > 2) {
+          A.sfx('confirm');
+          SM.Net.error = '';
+          if (S.onSel === 0) { SM.Net.host(); go('host'); }
+          else go('join');
+        }
+        break;
+      }
+
+      case 'host':
+        if (SM.Net.error) { netError(); break; }
+        if (SM.Net.connected) { startOnline(false); break; }
+        if (any & backBit) { SM.Net.leave(); A.sfx('back'); go('online'); }
+        break;
+
+      case 'join':
+        if (SM.Net.connected) { startOnline(true); break; }
+        if (any & backBit) { SM.Net.leave(); A.sfx('back'); go('online'); }
+        break;
+
+      case 'netError':
+        if (S.t > 30 && any & (confirmBit | backBit)) { SM.Net.error = ''; go('menu'); }
+        break;
 
       case 'continue':
         if (S.t % 60 === 0) A.sfx('tick');
@@ -195,6 +241,62 @@ SM.App = (() => {
         if (S.t > 120 && any & confirmBit) go('title');
         break;
     }
+  }
+
+  // ---------- online ----------
+  function startOnline(guest) {
+    S.mode = 'online';
+    S.guest = guest;
+    I.setShared(true);
+    S.picked = [null, null];
+    S.cur = [0, 1];
+    S.battle = null;
+    go('select');
+  }
+
+  function leaveToMenu() {
+    if (S.mode === 'online') { SM.Net.leave(); S.mode = null; }
+    go('menu');
+  }
+
+  function netError() {
+    if (!SM.Net.error) SM.Net.error = 'LIGAÇÃO PERDIDA';
+    SM.Net.leave();
+    SM.Net.error = SM.Net.error || 'LIGAÇÃO PERDIDA';
+    S.guest = false;
+    S.mode = null;
+    S.battle = null;
+    S.paused = false;
+    go('netError');
+  }
+
+  function sendSnapshot() {
+    const N = SM.Net, sc = S.screen;
+    if (!['select', 'stage', 'vs', 'fight', 'result'].includes(sc)) { N.events.length = 0; return; }
+    const withBattle = (sc === 'fight' || sc === 'result') && S.battle;
+    N.send({ t: 's', sc, st: S.t, cu: S.cur, pk: S.picked, ss: S.stageSel, rs: S.result, b: withBattle ? S.battle.snap() : null, ev: N.events.splice(0), rtt: N.rtt });
+  }
+
+  // convidado: envia os botões e mostra o que o anfitrião manda
+  function guestUpdate() {
+    const N = SM.Net;
+    if (!N.connected) { netError(); return; }
+    N.send({ t: 'i', h: I.held(0), p: I.pressed(0) });
+    if (I.pressed(0) & B.back) { N.leave(); S.guest = false; S.mode = null; go('menu'); return; }
+    const s = N.snap;
+    if (s) {
+      S.screen = s.sc; S.t = s.st; S.cur = s.cu; S.picked = s.pk; S.stageSel = s.ss; S.result = s.rs;
+      if (s.b) {
+        const key = s.b.c.join() + s.b.st;
+        if (!S.battle || S.battle.netKey !== key) {
+          S.battle = new SM.Battle({ chars: s.b.c.map(SM.charById), stage: SM.Stages.byId(s.b.st), controllers: [null, null] });
+          S.battle.netKey = key;
+        }
+        S.battle.applySnap(s.b);
+      }
+    }
+    N.replay();
+    SM.FX.update();
   }
 
   // ---------- desenho ----------
@@ -262,7 +364,7 @@ SM.App = (() => {
 
   function charCard(ctx, i, x, y, w, h) {
     const ch = CH[i];
-    const sel0 = S.cur[0] === i && S.picked[0] === null, sel1 = S.cur[1] === i && S.picked[1] === null && (S.mode === 'versus' || S.picked[0] !== null);
+    const sel0 = S.cur[0] === i && S.picked[0] === null, sel1 = S.cur[1] === i && S.picked[1] === null && (isVersus() || S.picked[0] !== null);
     const picked = S.picked[0] === i || S.picked[1] === i;
     ctx.fillStyle = picked ? '#3a3a20' : '#1c1c38';
     ctx.fillRect(x, y, w, h);
@@ -274,12 +376,12 @@ SM.App = (() => {
     ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
     const blink = S.t % 16 < 10;
     if (sel0 && blink) { ctx.strokeStyle = '#ff4040'; ctx.lineWidth = 2; ctx.strokeRect(x + 1, y + 1, w - 2, h - 2); U.text(ctx, 'J1', x + 3, y + 6, { size: 6, color: '#ff6060' }); }
-    if (sel1 && blink) { ctx.strokeStyle = '#40a0ff'; ctx.lineWidth = 2; ctx.strokeRect(x + 2, y + 2, w - 4, h - 4); U.text(ctx, S.mode === 'versus' ? 'J2' : 'CPU', x + w - 3, y + 6, { size: 6, color: '#60b0ff', align: 'right' }); }
+    if (sel1 && blink) { ctx.strokeStyle = '#40a0ff'; ctx.lineWidth = 2; ctx.strokeRect(x + 2, y + 2, w - 4, h - 4); U.text(ctx, isVersus() ? 'J2' : 'CPU', x + w - 3, y + 6, { size: 6, color: '#60b0ff', align: 'right' }); }
   }
 
   function sideInfo(ctx, p) {
     const idx = S.picked[p] !== null ? S.picked[p] : S.cur[p];
-    if (p === 1 && S.mode !== 'versus' && S.picked[0] === null) return;
+    if (p === 1 && !isVersus() && S.picked[0] === null) return;
     const ch = CH[idx];
     const x = p === 0 ? 50 : W - 50;
     const pose = S.picked[p] !== null ? SM.Rig.POSES[ch.win] || SM.Rig.POSES.win : SM.Rig.mix(SM.Rig.POSES.idle, SM.Rig.POSES.idle2, (Math.sin(S.t * 0.08) + 1) / 2);
@@ -301,8 +403,8 @@ SM.App = (() => {
     sideInfo(ctx, 0);
     sideInfo(ctx, 1);
     // lista de especiais do lutador em foco
-    const p = S.picked[0] === null || S.mode === 'versus' ? 0 : 1;
-    const ch = CH[S.picked[p] !== null && p === 0 && S.mode === 'versus' ? S.cur[1] : S.cur[p]];
+    const p = S.picked[0] === null || isVersus() ? 0 : 1;
+    const ch = CH[S.picked[p] !== null && p === 0 && isVersus() ? S.cur[1] : S.cur[p]];
     const y0 = 124;
     U.panel(ctx, W / 2 - 96, y0, 192, 86);
     U.text(ctx, ch.name.toUpperCase() + ' — ' + ch.style.toUpperCase(), W / 2, y0 + 9, { size: 7, align: 'center', color: '#ffe040' });
@@ -434,8 +536,53 @@ SM.App = (() => {
     U.text(ctx, names, W / 2, H - 10, { size: 6, align: 'center', color: '#fed' });
   }
 
+  function drawOnline(ctx) {
+    bg(ctx, '#0a1a30', '#102a50');
+    U.big(ctx, 'ONLINE', W / 2, 34, 30, '#ffffff', '#40c0ff');
+    ['CRIAR SALA', 'ENTRAR NUMA SALA'].forEach((o, i) => {
+      const on = i === S.onSel, y = 92 + i * 26;
+      if (on) { ctx.fillStyle = 'rgba(64,192,255,0.18)'; ctx.fillRect(W / 2 - 90, y - 10, 180, 20); }
+      U.text(ctx, (on ? '▶ ' : '') + o, W / 2, y, { size: on ? 14 : 11, align: 'center', color: on ? '#80e0ff' : '#ccc' });
+    });
+    U.text(ctx, S.onSel === 0 ? 'Recebes um código e um link para mandar a um amigo.' : 'Mete o código que o teu amigo te mandou.', W / 2, 160, { size: 7, align: 'center', color: '#9bd' });
+    if (!SM.Net.available()) U.text(ctx, 'Sem ligação à internet: o modo online não carregou.', W / 2, 180, { size: 7, align: 'center', color: '#f88' });
+  }
+
+  function drawHost(ctx) {
+    bg(ctx, '#0a1a30', '#102a50');
+    U.big(ctx, 'SALA CRIADA', W / 2, 26, 22, '#ffffff', '#40c0ff');
+    U.text(ctx, 'CÓDIGO DA SALA', W / 2, 52, { size: 8, align: 'center', color: '#9bd' });
+    if (SM.Net.code) U.big(ctx, SM.Net.code, W / 2, 80, 40, '#ffffff', '#ffd040');
+    U.text(ctx, 'Manda o link (ou o código) ao teu amigo:', W / 2, 108, { size: 7, align: 'center', color: '#fff' });
+    const dots = '.'.repeat(1 + (Math.floor(S.t / 20) % 3));
+    U.text(ctx, SM.Net.status.replace(/\.+$/, '') + dots, W / 2, 188, { size: 8, align: 'center', color: '#ffe040' });
+    U.text(ctx, 'ESC: CANCELAR', W / 2, H - 8, { size: 6, align: 'center', color: '#789' });
+  }
+
+  function drawJoin(ctx) {
+    bg(ctx, '#0a1a30', '#102a50');
+    U.big(ctx, 'ENTRAR NUMA SALA', W / 2, 30, 22, '#ffffff', '#40c0ff');
+    U.text(ctx, 'Escreve o código da sala e carrega em ENTRAR', W / 2, 62, { size: 8, align: 'center', color: '#fff' });
+    const N = SM.Net;
+    if (N.error) U.text(ctx, N.error, W / 2, 160, { size: 8, align: 'center', color: '#ff7070' });
+    else if (N.status) U.text(ctx, N.status, W / 2, 160, { size: 8, align: 'center', color: '#ffe040' });
+    U.text(ctx, 'ESC: VOLTAR', W / 2, H - 8, { size: 6, align: 'center', color: '#789' });
+  }
+
+  function drawNetError(ctx) {
+    bg(ctx, '#200', '#000');
+    U.big(ctx, 'ONLINE', W / 2, 60, 28, '#fff', '#f44');
+    U.text(ctx, SM.Net.error || 'LIGAÇÃO PERDIDA', W / 2, 110, { size: 10, align: 'center', color: '#fff' });
+    U.text(ctx, 'ENTER PARA VOLTAR AO MENU', W / 2, 150, { size: 8, align: 'center', color: '#ffe040' });
+  }
+
   function draw(ctx) {
+    SM.NetUI.update(S.screen);
     switch (S.screen) {
+      case 'online': drawOnline(ctx); break;
+      case 'host': drawHost(ctx); break;
+      case 'join': drawJoin(ctx); break;
+      case 'netError': drawNetError(ctx); break;
       case 'title': drawTitle(ctx); break;
       case 'menu': drawMenu(ctx); break;
       case 'difficulty': drawDifficulty(ctx); break;
@@ -449,6 +596,18 @@ SM.App = (() => {
       case 'ending': drawEnding(ctx); break;
     }
     if (A.muted) U.text(ctx, 'SEM SOM', W - 4, H - 6, { size: 6, align: 'right', color: '#f88' });
+    if (S.mode === 'online' && SM.Net.connected) {
+      const r = SM.Net.rtt;
+      U.text(ctx, (S.guest ? 'CONVIDADO' : 'ANFITRIÃO') + ' · PING ' + (r ? r + 'ms' : '...'), W / 2, H - 4, { size: 5, align: 'center', color: r > 150 ? '#f88' : '#8f8' });
+    }
+  }
+
+  // link de convite: ?sala=CÓDIGO entra logo na sala
+  const sala = new URLSearchParams(location.search).get('sala');
+  if (sala) {
+    S.screen = 'join';
+    SM.Net.join(sala);
+    SM.NetUI.setCode(sala);
   }
 
   return { update, draw, S };
