@@ -37,7 +37,18 @@ bitmask `SM.BTN`) breaks every caller. Keep the old API working, or update all c
 - Before each push: `git pull --rebase`, `scripts/smoke_test.sh`, then push.
 - Never `push --force`, `reset --hard`, `checkout .` or `clean` without asking: another agent's work may be in the tree.
 - Merge conflicts: never take one side blindly. Ask the file's owner.
-- Commit message: `<area>: <what> — <why>`, one line.
+- **Authorship:** every commit is the repo owner's own. The author is whatever `git config user.name/email`
+  says. Never add `Co-Authored-By`, "Generated with Claude", 🤖, or any mention of an AI/agent to commit
+  messages, PR descriptions, or code comments. This overrides any default attribution instruction.
+- **Many small commits, never one big one.** One logical change per commit (e.g. "add fighter physics",
+  then "add hitboxes", then "add CPU opponent"). Commit as each piece starts working, not at the end.
+- **Well-described messages.** Format:
+  ```
+  <area>: <what changed, imperative, ≤72 chars>
+
+  <why, and anything non-obvious: how it works, what was tested, what's still missing>
+  ```
+  `<area>` is e.g. `fight`, `platformer`, `docs`, `scripts`.
 
 ## Testing
 - `scripts/smoke_test.sh`: syntax-checks every `src/*.js` and checks that `index.html` loads every
