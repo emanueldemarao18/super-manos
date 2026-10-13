@@ -11,6 +11,7 @@ Plain JavaScript with `<canvas>`. No dependencies, no build step. In-game text i
 
 - **Modes:** Arcade (beat 7 opponents in a row), Versus (two players on one keyboard or with gamepads), VS CPU (pick opponent and difficulty: FÁCIL, NORMAL, DIFÍCIL, MESTRE) and Training (endless health and meter).
 - **Fighters:** all 11, each with a fighting style, body type, outfit, stats, three special moves and a super. Examples: Emanuel (street karate, energy wave), Atircio (wrestler, command grab), Cristiano (street football, kicks a ball), Álvaro (boxer, counter), Naftali (water, counter stance).
+- **Art:** the select, VS and victory screens use each fighter's character render (cut out with `tools/make-art.sh`), and the animated in-game fighters wear the same outfits.
 - **Stages:** Bairro ao Pôr do Sol, Praia da Caparica, Telhados de Lisboa (with the 25 de Abril bridge) and Estação de Metro.
 - **Fighting system:** 4 attack buttons, standing/crouching/jumping normals, chains and special cancels, throws, high/low/overhead blocking, juggles, counter hits, hitstop, combo counter with damage scaling, super meter, best-of-3 rounds with a 99 s timer.
 
