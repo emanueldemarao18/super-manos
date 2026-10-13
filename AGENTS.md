@@ -6,10 +6,11 @@ All in-game text is in European Portuguese. **Commit messages, README and docs a
 
 ## Current state (read first)
 Two games share this repo:
-- **Platformer** (Mario-style, 4 levels, working): everything lives in `platformer/`. Open `platformer/index.html`.
-- **Fighting game** (in progress, by another agent): the root `index.html` + `src/`. It has rewritten
-  `config.js`, `characters.js`, `audio.js` and `input.js`. The root still holds old copies of the platformer's
-  `game.js`, `levels.js`, `render.js` and `main.js`; their owner should delete them once the fight game has its own.
+- **Fighting game** (root `index.html` + `src/`): playable 1v1 fighter. Load order is in `index.html`:
+  config → input → audio → ui → rig → characters → moves → fx → fighter → stages → battle → ai → app → main.
+  Characters are data (`characters.js`), drawn by a skeletal IK renderer (`rig.js`); special moves and supers
+  are shared archetypes in `fighter.js` configured per character. Use `tools/rig-preview.html` to check poses.
+- **Platformer** (`platformer/`): Mario-style, 4 levels. Self-contained, with its own copies of shared modules.
 
 ## Priorities
 1. A game that runs from `index.html` beats everything else. Never leave `main` unplayable.
@@ -25,8 +26,8 @@ Two games share this repo:
 
 | Area | Files |
 |---|---|
+| Fighting game | root `index.html`, `src/**`, `tools/` |
 | Platformer | `platformer/**` |
-| Fighting game | root `index.html`, `src/**` |
 | Shared — small separate commits, announce them | `AGENTS.md`, `CLAUDE.md`, `scripts/`, `.gitignore` |
 
 Shared files are APIs. Changing a name or signature in one (e.g. `SM.Input.held('left')` →
