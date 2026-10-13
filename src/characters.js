@@ -7,9 +7,9 @@
 SM.CHARACTERS = [
   {
     id: 'emanuel', name: 'Emanuel', style: 'Karaté de Rua', quote: 'BORA, MALTA!',
-    skin: '#6a4127', hair: 'short', hairColor: '#140d0a', beard: true, band: '#d83030',
-    body: { size: 1.0, bulk: 1.0 },
-    outfit: { top: '#f2efe8', sleeves: 0.5, style: 'gi', belt: '#151515', pants: '#f2efe8', pantsCut: 'gi', shoes: 'bare', wraps: '#d83030' },
+    skin: '#5e3b25', hair: 'curly', hairColor: '#120c08', beard: true, band: '#d82828',
+    body: { size: 1.02, bulk: 1.12, muscle: 1.15 },
+    outfit: { top: null, style: 'vest', vest: '#d02626', trim: '#f2f2f2', sleeves: 0, belt: '#141414', pants: '#2440b8', pantsCut: 'gi', shoes: 'bare', gloves: '#d42a2a', strap: '#1a1a1a' },
     stats: { hp: 1000, walk: 1.0, power: 1.0 },
     specials: [
       { cmd: '236', btn: 'p', type: 'projectile', name: 'ONDA DE ENERGIA', fx: 'orb', color: '#40b0ff', speed: 4.2, dmg: 70 },
@@ -21,9 +21,9 @@ SM.CHARACTERS = [
   },
   {
     id: 'leonardo', name: 'Leonardo', style: 'Kickboxing de Fogo', quote: 'FÁCIL DEMAIS.',
-    skin: '#c08a60', hair: 'flattop', hairColor: '#1c120c',
-    body: { size: 1.0, bulk: 0.98 },
-    outfit: { top: null, sleeves: 0, pants: '#c83a20', pantsCut: 'shorts', shoes: '#f0f0f0', sole: '#c83a20', socks: '#f0f0f0', gloves: '#d82020', belt: '#f0c020' },
+    skin: '#8a5a3a', hair: 'flattop', hairColor: '#120c08', band: '#2a9a3a',
+    body: { size: 1.02, bulk: 1.1, muscle: 1.15 },
+    outfit: { top: null, style: 'vest', vest: '#24983a', trim: '#f2f2f2', sleeves: 0, belt: '#141414', pants: '#2440b8', pantsCut: 'gi', shoes: 'bare', gloves: '#26a03c', strap: '#1a1a1a' },
     stats: { hp: 980, walk: 1.05, power: 1.0 },
     specials: [
       { cmd: '236', btn: 'p', type: 'projectile', name: 'BOLA DE FOGO', fx: 'fire', color: '#ff7a20', speed: 5, dmg: 75 },
@@ -35,9 +35,9 @@ SM.CHARACTERS = [
   },
   {
     id: 'walgidio', name: 'Walgídio', style: 'Choque Elétrico', quote: 'ISSO É QUE É!',
-    skin: '#a87449', hair: 'cap', hairColor: '#1c120c',
-    body: { size: 0.98, bulk: 1.0 },
-    outfit: { top: '#f0c020', sleeves: 0.5, style: 'tshirt', pants: '#2a2a32', pantsCut: 'long', shoes: '#e83030', sole: '#fff', capColor: '#e83030', chain: '#f8e080' },
+    skin: '#5a3824', hair: 'cap', hairColor: '#120c08', beard: 'goatee',
+    body: { size: 1.0, bulk: 1.12, muscle: 1.15 },
+    outfit: { top: '#e8c020', sleeves: 0, style: 'tank', pants: '#3a3a3e', pantsCut: 'baggy', cuff: '#2a2a2e', shoes: '#d42a2a', sole: '#f0f0f0', capColor: '#d42a2a', gloves: '#d42a2a', strap: '#1a1a1a' },
     stats: { hp: 1000, walk: 1.05, power: 0.95 },
     specials: [
       { cmd: '236', btn: 'p', type: 'zap', name: 'DESCARGA', color: '#fff060', dmg: 95, range: 46, hits: 4 },
@@ -49,9 +49,9 @@ SM.CHARACTERS = [
   },
   {
     id: 'dave', name: 'Dave', style: 'Capoeira', quote: 'YEAH BOY!',
-    skin: '#4a2c1a', hair: 'afro', hairColor: '#120a06',
-    body: { size: 1.02, bulk: 0.92 },
-    outfit: { top: '#8a3ad8', sleeves: 0, style: 'tank', pants: '#f2f2f2', pantsCut: 'gi', shoes: 'bare', belt: '#8a3ad8' },
+    skin: '#4a2e1c', hair: 'afro', hairColor: '#120a06', beard: 'goatee',
+    body: { size: 1.03, bulk: 1.08, muscle: 1.12 },
+    outfit: { top: null, style: 'vest', vest: '#7a2ad0', trim: '#f2f2f2', sleeves: 0, belt: '#141414', pants: '#1c1c22', pantsCut: 'gi', shoes: 'bare', gloves: '#8a3ae0', strap: '#1a1a1a' },
     stats: { hp: 960, walk: 1.1, power: 0.95 },
     specials: [
       { cmd: '236', btn: 'k', type: 'spin', name: 'MEIA-LUA', color: '#c890ff', dmg: 95, speed: 3.6, hits: 3 },
@@ -63,9 +63,9 @@ SM.CHARACTERS = [
   },
   {
     id: 'diego', name: 'Diego', style: 'Velocidade Pura', quote: 'RÁPIDO E FURIOSO!',
-    skin: '#c89468', hair: 'short', hairColor: '#2a1a10',
-    body: { size: 0.96, bulk: 0.9 },
-    outfit: { top: '#f07818', sleeves: 1, style: 'jacket', inner: '#202020', pants: '#20263a', pantsCut: 'long', shoes: '#f0f0f0', sole: '#f07818' },
+    skin: '#8a5c3c', hair: 'curly', hairColor: '#1a100a', beard: 'stubble', band: '#f07020',
+    body: { size: 0.98, bulk: 1.05, muscle: 1.1 },
+    outfit: { top: null, style: 'vest', vest: '#ec6a1c', trim: '#c85410', sleeves: 0, belt: '#141414', pants: '#2440b8', pantsCut: 'gi', shoes: 'bare', gloves: '#f07020', strap: '#1a1a1a' },
     stats: { hp: 920, walk: 1.25, power: 0.9 },
     specials: [
       { cmd: '236', btn: 'p', type: 'rush', name: 'SOCOS RELÂMPAGO', pose: 'rush', color: '#ffffff', dmg: 90, speed: 8, dur: 14, hits: 3 },
@@ -77,9 +77,9 @@ SM.CHARACTERS = [
   },
   {
     id: 'naftali', name: 'Naftali', style: 'Fluxo da Água', quote: 'VOEI, MANO!',
-    skin: '#3d2416', hair: 'dreads', hairColor: '#0e0806',
-    body: { size: 1.0, bulk: 0.96 },
-    outfit: { top: '#18a8a0', sleeves: 1, style: 'hoodie', pants: '#3a2a1a', pantsCut: 'long', shoes: '#f0c020', sole: '#222', accent: '#f0c020' },
+    skin: '#3e2618', hair: 'dreads', hairColor: '#120a06', beard: true, band: '#e8c020',
+    body: { size: 1.03, bulk: 1.1, muscle: 1.15 },
+    outfit: { top: null, style: 'vest', vest: '#14988e', trim: '#e8c020', sleeves: 0, belt: '#141414', pants: '#7a4422', pantsCut: 'gi', shoes: 'bare', gloves: '#e8c020', strap: '#1a1a1a', accent: '#e8c020' },
     stats: { hp: 1000, walk: 1.0, power: 1.0 },
     specials: [
       { cmd: '236', btn: 'p', type: 'projectile', name: 'ONDA DE ÁGUA', fx: 'wave', color: '#40d8ff', speed: 3, dmg: 80, size: 1.4 },
@@ -91,9 +91,9 @@ SM.CHARACTERS = [
   },
   {
     id: 'atircio', name: 'Atircio', style: 'Luta Livre', quote: 'NINGUÉM ME PARA.',
-    skin: '#553420', hair: 'bald', hairColor: '#0e0806', beard: true,
-    body: { size: 1.1, bulk: 1.3 },
-    outfit: { top: '#e8e8e8', sleeves: 0, style: 'tank', pants: '#3a3a5a', pantsCut: 'long', shoes: '#1a1a1a', sole: '#888', belt: '#c8a020', wraps: '#e8e8e8' },
+    skin: '#4a2e1e', hair: 'bald', hairColor: '#0e0806', beard: true, beardColor: '#6a6662', band: '#2a48b0',
+    body: { size: 1.1, bulk: 1.3, muscle: 1.2 },
+    outfit: { top: null, style: 'vest', vest: '#e8e6e0', trim: '#d0cec8', sleeves: 0, belt: '#141414', pants: '#24409a', pantsCut: 'gi', shoes: 'bare', gloves: '#2a48b0', strap: '#1a1a1a' },
     stats: { hp: 1150, walk: 0.8, power: 1.25 },
     specials: [
       { cmd: '214', btn: 'p', type: 'cmdGrab', name: 'ABRAÇO DE URSO', color: '#b08850', dmg: 170, range: 44 },
@@ -105,9 +105,9 @@ SM.CHARACTERS = [
   },
   {
     id: 'daniel', name: 'Daniel', style: 'Taekwondo do Vento', quote: 'MISSÃO CUMPRIDA.',
-    skin: '#6b4428', hair: 'flattop', hairColor: '#120a06',
-    body: { size: 1.02, bulk: 0.95 },
-    outfit: { top: '#ffffff', sleeves: 1, style: 'gi', belt: '#2878e8', pants: '#ffffff', pantsCut: 'gi', shoes: 'bare', cuffs: '#2878e8' },
+    skin: '#4e3220', hair: 'flattop', hairColor: '#0e0806',
+    body: { size: 1.04, bulk: 1.12, muscle: 1.15 },
+    outfit: { top: '#2448b8', sleeves: 0, style: 'tank', pants: '#b8b8bc', pantsCut: 'baggy', shoes: '#f4f4f4', sole: '#dcdcdc', gloves: '#2448b8', strap: '#1a1a1a' },
     stats: { hp: 980, walk: 1.05, power: 1.0 },
     specials: [
       { cmd: '236', btn: 'k', type: 'projectile', name: 'LÂMINA DE VENTO', fx: 'blade', color: '#a0ffb0', speed: 5.5, dmg: 65, kick: true },
@@ -119,9 +119,9 @@ SM.CHARACTERS = [
   },
   {
     id: 'alvaro', name: 'Álvaro', style: 'Boxe', quote: 'TRANQUILO.',
-    skin: '#4f301c', hair: 'buzz', hairColor: '#120a06', glasses: true,
-    body: { size: 1.0, bulk: 1.08 },
-    outfit: { top: null, sleeves: 0, pants: '#2878e8', pantsCut: 'shorts', shoes: '#f0f0f0', sole: '#2878e8', socks: '#f0f0f0', gloves: '#2050c0', belt: '#f0f0f0' },
+    skin: '#4e3220', hair: 'capBack', hairColor: '#0e0806', beard: true,
+    body: { size: 1.02, bulk: 1.15, muscle: 1.18 },
+    outfit: { top: '#1a1a1c', sleeves: 0, style: 'tank', pants: '#cbb894', pantsCut: 'baggy', shoes: '#2448b8', sole: '#f0f0f0', capColor: '#2448b8', gloves: '#2448b8', strap: '#1a1a1a' },
     stats: { hp: 1020, walk: 1.05, power: 1.1 },
     specials: [
       { cmd: '236', btn: 'p', type: 'rush', name: 'DIRETO DE CORRIDA', pose: 'rush2', color: '#80b0ff', dmg: 110, speed: 7.5, dur: 16 },
@@ -133,9 +133,9 @@ SM.CHARACTERS = [
   },
   {
     id: 'cleusio', name: 'Cleusio', style: 'Saltos de Campeão', quote: 'SALTO DE CAMPEÃO!',
-    skin: '#45291a', hair: 'buzz', hairColor: '#0e0806', band: '#e85a9a',
-    body: { size: 0.98, bulk: 0.95 },
-    outfit: { top: '#e85a9a', sleeves: 0.5, style: 'tshirt', pants: '#2a2a4a', pantsCut: 'shorts', shoes: '#f0f0f0', sole: '#e85a9a', socks: '#e85a9a' },
+    skin: '#4a2e1e', hair: 'bald', hairColor: '#0e0806', beard: 'goatee',
+    body: { size: 1.0, bulk: 1.15, muscle: 1.18 },
+    outfit: { top: '#e888b0', sleeves: 0, style: 'tank', pants: '#1e2a70', pantsCut: 'baggy', shoes: '#f4f4f4', sole: '#dcdcdc', gloves: '#e888b0', strap: '#1a1a1a' },
     stats: { hp: 960, walk: 1.0, power: 1.0, jump: 1.15 },
     specials: [
       { cmd: '236', btn: 'k', type: 'dive', name: 'SALTO METEORO', color: '#ff5050', dmg: 100 },
@@ -147,9 +147,9 @@ SM.CHARACTERS = [
   },
   {
     id: 'cristiano', name: 'Cristiano', style: 'Futebol de Rua', quote: 'SIUUU!',
-    skin: '#5e3b22', hair: 'short', hairColor: '#120a06',
-    body: { size: 1.03, bulk: 1.0 },
-    outfit: { top: '#c8102e', sleeves: 0.5, style: 'jersey', stripe: '#0a7a2a', number: '7', pants: '#ffffff', pantsCut: 'shorts', shoes: '#f0d020', sole: '#111', socks: '#c8102e' },
+    skin: '#6a4428', hair: 'curly', hairColor: '#0e0806', beard: 'goatee',
+    body: { size: 1.04, bulk: 1.12, muscle: 1.15 },
+    outfit: { top: '#c81e24', sleeves: 0.5, style: 'jersey', trim: '#1a8a3a', pants: '#1a8a3a', pantsCut: 'shorts', shoes: '#141414', sole: '#141414', socks: '#f2f2f2', socksHigh: true, sockBand: '#d42a2a', gloves: '#c81e24', strap: '#1a1a1a' },
     stats: { hp: 1000, walk: 1.1, power: 1.0 },
     specials: [
       { cmd: '236', btn: 'k', type: 'projectile', name: 'REMATE', fx: 'ball', color: '#ffb020', speed: 6, dmg: 75, kick: true },
