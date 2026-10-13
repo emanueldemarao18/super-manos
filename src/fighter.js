@@ -191,7 +191,9 @@ SM.Fighter = (() => {
           const sp = this.ch.specials.find((s) => s.cmd === cmd);
           if (!sp) continue;
           const btn = sp.btn === 'p' ? P : K;
-          if ((p & btn) && SM.Motion.match(buf, cmd, 16)) {
+          // atalho de teclado para o →↓↘: → seguido de ↘ também conta
+          const ok = SM.Motion.match(buf, cmd, 16) || (cmd === '623' && SM.Motion.match(buf, '63', 12));
+          if ((p & btn) && ok) {
             if (sp.type === 'projectile' && this.battle.projectiles.some((q) => q.owner === this && !q.column)) continue;
             this.consume();
             this.startSpecial(sp, !!(p & (B.hp | B.hk)));
