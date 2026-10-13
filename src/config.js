@@ -23,7 +23,7 @@ const SM = {
   ROUNDS_TO_WIN: 2,
 
   // botões lógicos (bits)
-  BTN: { up: 1, down: 2, left: 4, right: 8, lp: 16, hp: 32, lk: 64, hk: 128, start: 256 },
+  BTN: { up: 1, down: 2, left: 4, right: 8, lp: 16, hp: 32, lk: 64, hk: 128, start: 256, back: 512 },
 
   FONT: '"Russo One", "Arial Black", sans-serif',
   FONT_BIG: '"Bangers", "Impact", sans-serif',

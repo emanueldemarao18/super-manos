@@ -5,7 +5,7 @@
 SM.Input = (() => {
   const B = SM.BTN;
   const KEYS = [
-    { KeyW: B.up, KeyS: B.down, KeyA: B.left, KeyD: B.right, KeyF: B.lp, KeyG: B.hp, KeyV: B.lk, KeyB: B.hk, Enter: B.start, Escape: B.start },
+    { KeyW: B.up, KeyS: B.down, KeyA: B.left, KeyD: B.right, KeyF: B.lp, KeyG: B.hp, KeyV: B.lk, KeyB: B.hk, Enter: B.start, Escape: B.back, Backspace: B.back },
     {
       ArrowUp: B.up, ArrowDown: B.down, ArrowLeft: B.left, ArrowRight: B.right,
       KeyK: B.lp, KeyL: B.hp, Comma: B.lk, Period: B.hk,
