@@ -196,16 +196,20 @@ SM.Rig = (() => {
     const skin = front ? ch.skin : SM.shade(ch.skin, 0.85);
     const dim = (c) => (front ? c : SM.shade(c, 0.85));
     const sleeve = o.sleeves; // 0 nada, 0.5 meia manga, 1 manga comprida
-    limb(sh, el, 9 * b, 7.5 * b, sleeve > 0 && sleeve < 1 ? dim(o.top) : sleeve >= 1 ? dim(o.top) : skin);
+    const mu = ch.body.muscle || 1; // bíceps maiores
+    limb(sh, el, 9 * b * mu, 7.5 * b, sleeve > 0 && sleeve < 1 ? dim(o.top) : sleeve >= 1 ? dim(o.top) : skin);
     if (sleeve > 0 && sleeve < 1) {
       // meia manga: o resto do braço é pele
       const mid = lerpP(sh, el, 0.55);
-      limb(mid, el, 7.8 * b, 7.5 * b, skin);
+      limb(mid, el, 7.8 * b * mu, 7.5 * b, skin);
+      if (o.trim) limb(lerpP(sh, el, 0.5), lerpP(sh, el, 0.58), 9.6 * b * mu, 9.4 * b * mu, dim(o.trim), false);
     }
     limb(el, ha, 7.5 * b, 6 * b, sleeve >= 1 ? dim(o.top) : skin);
     if (o.cuffs) limb(lerpP(el, ha, 0.75), ha, 6.5 * b, 6.5 * b, dim(o.cuffs), false);
     const fist = o.gloves ? dim(o.gloves) : skin;
-    blob(ha, (J.open ? 3.6 : 4.4) * b, fist);
+    if (o.gloves) limb(lerpP(el, ha, 0.7), lerpP(el, ha, 0.9), 7 * b, 7 * b, dim(o.strap || o.gloves), false); // fita do pulso
+    blob(ha, (J.open ? 3.6 : 4.6) * b, fist);
+    if (o.gloves && !flat) { ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(ha[0] - 2.5 * b, ha[1] - 0.5, 5 * b, 1); } // dedos
     if (o.wraps && !o.gloves) {
       ctx.fillStyle = col(dim(o.wraps));
       ctx.fillRect(ha[0] - 3 * b, ha[1] - 1, 6 * b, 2);
@@ -217,7 +221,7 @@ SM.Rig = (() => {
     const hp = front ? J.hipF : J.hipB, kn = front ? J.kneeF : J.kneeB, ft = front ? J.footF : J.footB;
     const dim = (c) => (front ? c : SM.shade(c, 0.82));
     const skin = dim(ch.skin);
-    const wide = o.pantsCut === 'gi' ? 1.25 : 1;
+    const wide = o.pantsCut === 'gi' || o.pantsCut === 'baggy' ? 1.28 : 1;
     limb(hp, kn, 12 * b * wide, 9.5 * b * wide, dim(o.pants));
     if (o.pantsCut === 'shorts') {
       const mid = lerpP(hp, kn, 0.8);
@@ -226,7 +230,12 @@ SM.Rig = (() => {
     } else {
       limb(kn, ft, 9.5 * b * wide, 7 * b * wide, dim(o.pants));
     }
-    if (o.socks) limb(lerpP(kn, ft, 0.6), ft, 6.5 * b, 6.5 * b, dim(o.socks), false);
+    if (o.socks) {
+      const top = o.socksHigh ? 0.15 : 0.6;
+      limb(lerpP(kn, ft, top), ft, (o.socksHigh ? 8 : 6.5) * b, 6.5 * b, dim(o.socks));
+      if (o.sockBand) limb(lerpP(kn, ft, top + 0.08), lerpP(kn, ft, top + 0.16), 8 * b, 7.8 * b, dim(o.sockBand), false);
+    }
+    if (o.pantsCut === 'baggy' && o.cuff) limb(lerpP(kn, ft, 0.82), lerpP(kn, ft, 0.95), 9 * b, 8.5 * b, dim(o.cuff), false);
     // pé: perpendicular à canela, para a frente
     const sx = ft[0] - kn[0], sy = ft[1] - kn[1], sl = Math.hypot(sx, sy) || 1;
     const fx = sy / sl, fy = -sx / sl;
@@ -283,26 +292,35 @@ SM.Rig = (() => {
       for (const k of [0.45, 0.32, 0.2]) line(at(k, 5), at(k, -3), d, 0.9);
       line(at(0.6, 1), at(0.1, 1), d, 0.9);
     }
+    if (o.style === 'vest') {
+      // colete aberto: painel de trás e tira da frente, com debrum; peito à mostra no meio
+      const v = o.vest, tr = o.trim || SM.shade(v, 0.7);
+      poly([at(1.0, -nw - 0.5), at(0.72, -cw - 0.5), at(-0.12, -ww - 2), at(-0.12, -4.5), at(0.5, -4), at(0.98, -3.5)], v);
+      poly([at(0.98, nw - 0.5), at(0.72, cw + 0.5), at(-0.1, ww + 1.8), at(-0.1, ww - 0.6), at(0.72, cw - 1.6)], SM.shade(v, 1.1));
+      line(at(0.98, -3.5), at(0.5, -4), tr, 1.8);
+      line(at(0.5, -4), at(-0.12, -4.5), tr, 1.8);
+      line(at(0.98, nw - 0.5), at(0.72, cw - 1.6), tr, 1.4);
+      line(at(0.72, cw - 1.6), at(-0.1, ww - 0.6), tr, 1.4);
+    }
+    if ((o.style === 'vest' || o.style === 'gi') && o.belt) {
+      const bl = [at(0.04, ww + 1.5), at(0.14, ww + 1.5), at(0.14, -ww - 1.5), at(0.04, -ww - 1.5)];
+      poly(bl, o.belt);
+      const k0 = at(0.09, ww * 0.4);
+      limb(k0, [k0[0] + 2, k0[1] + 11], 2.6, 2.2, o.belt, false);
+      limb(k0, [k0[0] - 1.5, k0[1] + 10], 2.6, 2.2, SM.shade(o.belt, 1.3), false);
+    }
     if (o.style === 'gi') {
       // gola em V e cinto
       poly([at(1, 3), at(0.6, 4), at(1, -2)], SM.shade(ch.skin, 0.95), false);
       line(at(1, 4), at(0.55, 4), SM.shade(o.top, 0.6), 1.4);
-      const bl = [at(0.1, ww + 1), at(0.18, ww + 1), at(0.18, -ww - 1), at(0.1, -ww - 1)];
-      poly(bl, o.belt || '#111');
-      limb(at(0.14, ww), [at(0.14, ww)[0] + 2, at(0.14, ww)[1] + 8], 2.4, 2, o.belt || '#111', false);
     }
     if (o.style === 'tank') {
       line(at(1, 5), at(0.82, 3), SM.shade(o.top, 0.6), 1.2);
     }
     if (o.style === 'jersey') {
-      // camisola de futebol com risca e número
-      poly([at(0.95, 3), at(0.15, 4), at(0.15, 1), at(0.95, 0)], o.stripe, false);
-      ctx.fillStyle = o.stripe;
-      ctx.font = `bold ${8 * b}px ${SM.FONT}`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const c = at(0.55, -3.5);
-      ctx.fillText(o.number || '7', c[0], c[1]);
+      // camisola de futebol: gola em V com debrum
+      poly([at(1.02, 4), at(0.84, 4.5), at(1.02, -1)], o.trim || '#fff', false);
+      poly([at(1.0, 3.2), at(0.87, 4), at(1.0, 0)], ch.skin, false);
     }
     if (o.style === 'hoodie') {
       // capuz atrás do pescoço e cordões
@@ -395,12 +413,18 @@ SM.Rig = (() => {
       else { ctx.beginPath(); ctx.moveTo(5, 5.2); ctx.lineTo(8, 4.6); ctx.strokeStyle = SM.shade(ch.skin, 0.5); ctx.lineWidth = 1; ctx.stroke(); }
     }
     // barba
-    if (ch.beard) {
+    const beardC = ch.beardColor || ch.hairColor;
+    if (ch.beard === 'goatee') {
+      ctx.beginPath(); ctx.moveTo(4.2, 6); ctx.lineTo(4.6, 9.4); ctx.lineTo(8.4, 8.2); ctx.lineTo(8.6, 6.2); ctx.lineTo(7, 6.6); ctx.closePath(); fill(beardC);
+      ctx.beginPath(); ctx.moveTo(4.8, 3.6); ctx.lineTo(9, 3.2); ctx.lineTo(8.6, 4.4); ctx.lineTo(5, 4.6); ctx.closePath(); fill(beardC);
+    } else if (ch.beard === 'stubble') {
+      if (!flat) { ctx.beginPath(); ctx.moveTo(-2, 2); ctx.lineTo(0, 6.5); ctx.lineTo(4, 9.4); ctx.lineTo(8.6, 7.6); ctx.lineTo(8.8, 5); ctx.lineTo(3, 4); ctx.closePath(); ctx.fillStyle = 'rgba(20,10,5,0.35)'; ctx.fill(); }
+    } else if (ch.beard) {
       ctx.beginPath();
       ctx.moveTo(-2.5, 1); ctx.lineTo(-1, 6); ctx.lineTo(4, 9.6); ctx.lineTo(8.8, 7.6); ctx.lineTo(9, 5.6);
       ctx.lineTo(7.4, 6.2); ctx.lineTo(5, 3.8); ctx.lineTo(1, 3.4); ctx.closePath();
-      fill(ch.beard === true ? ch.hairColor : ch.beard);
-      if (ch.mustache !== false) { ctx.beginPath(); ctx.moveTo(4.6, 3.6); ctx.lineTo(9, 3.2); ctx.lineTo(8.6, 4.6); ctx.lineTo(5, 4.8); ctx.closePath(); fill(ch.hairColor); }
+      fill(beardC);
+      if (ch.mustache !== false) { ctx.beginPath(); ctx.moveTo(4.6, 3.6); ctx.lineTo(9, 3.2); ctx.lineTo(8.6, 4.6); ctx.lineTo(5, 4.8); ctx.closePath(); fill(beardC); }
     }
 
     // cabelo por cima
@@ -430,6 +454,24 @@ SM.Rig = (() => {
         fill(ch.hairColor);
         break;
       case 'dreads': cap(ch.hairColor); break;
+      case 'curly': {
+        cap(ch.hairColor);
+        if (!flat) {
+          ctx.fillStyle = SM.shade(ch.hairColor, 1.8);
+          for (let i = 0; i < 7; i++) { ctx.beginPath(); ctx.arc(-6 + i * 2.1, -9.8 + Math.abs(i - 3) * 0.7, 1.4, 0, Math.PI * 2); ctx.fill(); }
+        }
+        break;
+      }
+      case 'capBack': {
+        // boné virado para trás
+        const cc = ch.outfit.capColor || '#2050c0';
+        ctx.beginPath(); ctx.moveTo(-8.4, -2); ctx.bezierCurveTo(-9, -15, 7, -15, 8, -4.6); ctx.closePath();
+        stroke(); fill(cc);
+        ctx.beginPath(); ctx.moveTo(-6, -6); ctx.lineTo(-15, -4.2); ctx.lineTo(-14.4, -2.8); ctx.lineTo(-6.4, -3.2); ctx.closePath();
+        stroke(); fill(SM.shade(cc, 0.75));
+        R(-3, -7.2, 3, 2.4, SM.shade(cc, 0.6));
+        break;
+      }
       case 'cap': {
         const cc = ch.outfit.capColor || '#e83030';
         ctx.beginPath(); ctx.moveTo(-8.4, -2); ctx.bezierCurveTo(-9, -15, 7, -15, 8, -4.6); ctx.closePath();
