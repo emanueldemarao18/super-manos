@@ -368,10 +368,9 @@ SM.App = (() => {
     const picked = S.picked[0] === i || S.picked[1] === i;
     ctx.fillStyle = picked ? '#3a3a20' : '#1c1c38';
     ctx.fillRect(x, y, w, h);
-    const img = SM.Rig.portrait(ch);
     ctx.save();
     ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
-    ctx.drawImage(img, 0, 0, 120, 120, x - 4, y - 2, w + 8, w + 8);
+    if (!SM.Art.face(ctx, ch.id, x, y, w, h)) ctx.drawImage(SM.Rig.portrait(ch), 0, 0, 120, 120, x - 4, y - 2, w + 8, w + 8);
     ctx.restore();
     ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
     const blink = S.t % 16 < 10;
@@ -385,7 +384,9 @@ SM.App = (() => {
     const ch = CH[idx];
     const x = p === 0 ? 50 : W - 50;
     const pose = S.picked[p] !== null ? SM.Rig.POSES[ch.win] || SM.Rig.POSES.win : SM.Rig.mix(SM.Rig.POSES.idle, SM.Rig.POSES.idle2, (Math.sin(S.t * 0.08) + 1) / 2);
-    fighterAt(ctx, ch, pose, x, 196, p === 0 ? 1 : -1, 1.25);
+    // arte do jogador com um leve balanço; o boneco animado fica de reserva
+    const bob = S.picked[p] !== null ? 0 : Math.sin(S.t * 0.08 + p) * 1.5;
+    if (!SM.Art.full(ctx, ch.id, x, 204 + bob, 176, p === 0 ? 1 : -1)) fighterAt(ctx, ch, pose, x, 196, p === 0 ? 1 : -1, 1.25);
     U.text(ctx, ch.name.toUpperCase(), x, 210, { size: 12, align: 'center', color: p === 0 ? '#ff7070' : '#70b0ff', font: SM.FONT_BIG });
     U.text(ctx, ch.style, x, 220, { size: 6, align: 'center', color: '#ddd' });
   }
@@ -437,8 +438,8 @@ SM.App = (() => {
     ctx.fillStyle = '#000';
     ctx.beginPath(); ctx.moveTo(W / 2 - 20, 0); ctx.lineTo(W / 2 + 20, 0); ctx.lineTo(W / 2 - 10, H); ctx.lineTo(W / 2 - 50, H); ctx.fill();
     const k = Math.min(1, S.t / 20);
-    fighterAt(ctx, a, SM.Rig.POSES.winCool, -60 + 160 * k, 240, 1, 2);
-    fighterAt(ctx, b, SM.Rig.POSES.winCool, W + 60 - 160 * k, 240, -1, 2);
+    if (!SM.Art.full(ctx, a.id, -80 + 180 * k, 292, 282, 1)) fighterAt(ctx, a, SM.Rig.POSES.winCool, -60 + 160 * k, 240, 1, 2);
+    if (!SM.Art.full(ctx, b.id, W + 80 - 180 * k, 292, 282, -1)) fighterAt(ctx, b, SM.Rig.POSES.winCool, W + 60 - 160 * k, 240, -1, 2);
     U.big(ctx, 'VS', W / 2 - 15, H / 2, 60, '#ffffff', '#ffd040', 1 + Math.max(0, (30 - S.t) / 30));
     U.text(ctx, a.name.toUpperCase(), 20, H - 20, { size: 22, color: '#fff', font: SM.FONT_BIG });
     U.text(ctx, b.name.toUpperCase(), W - 20, H - 20, { size: 22, color: '#fff', align: 'right', font: SM.FONT_BIG });
@@ -508,7 +509,7 @@ SM.App = (() => {
     bt.draw(ctx);
     ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, W, H);
     const w = bt.fighters[S.result.winner];
-    fighterAt(ctx, w.ch, SM.Rig.POSES[w.ch.win] || SM.Rig.POSES.win, W / 2 - 80, 205, 1, 1.4);
+    if (!SM.Art.full(ctx, w.ch.id, W / 2 - 100, 236, 240, 1)) fighterAt(ctx, w.ch, SM.Rig.POSES[w.ch.win] || SM.Rig.POSES.win, W / 2 - 80, 205, 1, 1.4);
     U.big(ctx, w.ch.name.toUpperCase() + ' VENCE!', W / 2 + 50, 70, 30);
     U.text(ctx, '"' + w.ch.quote + '"', W / 2 + 50, 100, { size: 11, align: 'center', color: '#fff', italic: true });
     if (S.t > 60) {
@@ -530,7 +531,7 @@ SM.App = (() => {
   function drawEnding(ctx) {
     bg(ctx, '#301a00', '#a04000');
     const ch = CH[S.picked[0]];
-    fighterAt(ctx, ch, SM.Rig.POSES[ch.win] || SM.Rig.POSES.win, W / 2, 200, 1, 1.5);
+    if (!SM.Art.full(ctx, ch.id, W / 2, 226, 180, 1)) fighterAt(ctx, ch, SM.Rig.POSES[ch.win] || SM.Rig.POSES.win, W / 2, 200, 1, 1.5);
     U.big(ctx, 'CAMPEÃO DO BAIRRO!', W / 2, 36, 28, '#fff6a0', '#ffb000');
     U.text(ctx, ch.name.toUpperCase() + ' derrotou todos os manos.', W / 2, 62, { size: 9, align: 'center', color: '#fff' });
     const names = CH.filter((c) => c !== ch).map((c) => c.name).join(' · ');
