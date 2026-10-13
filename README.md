@@ -1,48 +1,49 @@
 # Super Manos
 
-Jogos de browser com a malta como personagens: o Emanuel, o Leonardo, o Walgídio, o Dave, o Diego, o Naftali, o Atircio, o Daniel, o Álvaro, o Cleusio e o Cristiano.
+Browser games starring the crew: Emanuel, Leonardo, Walgídio, Dave, Diego, Naftali, Atircio, Daniel, Álvaro, Cleusio and Cristiano.
 
-Feito em JavaScript puro com `<canvas>`. Não há dependências nem passo de build.
+Plain JavaScript with `<canvas>`. No dependencies, no build step. In-game text is in Portuguese.
 
-## Jogos
+## Games
 
-### Super Manos — Torneio de Rua (jogo de luta) · *em construção*
-Luta 1 contra 1 ao estilo Street Fighter/Tekken. Está na raiz do repo: abre `index.html`.
+### Super Manos — Torneio de Rua (fighting game) · *in progress*
+1v1 fighting game in the style of Street Fighter / Tekken. It lives in the repo root: open `index.html`.
 
-- **Modos:** Arcade contra o CPU, Versus com um amigo (no mesmo teclado ou com comandos), Contra CPU com dificuldade à escolha, e Treino.
-- **Lutadores:** cada mano tem um estilo de luta, golpes especiais e um super próprios.
+- **Modes:** Arcade against the CPU, Versus with a friend (shared keyboard or gamepads), VS CPU with a chosen difficulty, and Training.
+- **Fighters:** each one has their own fighting style, special moves and a super.
 
-### Super Manos (plataformas)
-Plataformas ao estilo Mario, com 4 níveis. Abre `platformer/index.html`.
+### Super Manos (platformer)
+Mario-style platformer with 4 levels. Open `platformer/index.html`.
 
-| Tecla | Ação |
+| Key | Action |
 |---|---|
-| ← → / A D | andar |
-| Z / Espaço / K | saltar (segurar = salto mais alto) |
-| X / Shift / J | correr |
-| Enter | confirmar / pausa |
-| M | sem som |
+| ← → / A D | walk |
+| Z / Space / K | jump (hold = higher jump) |
+| X / Shift / J | run |
+| Enter | confirm / pause |
+| M | mute |
 
-Poderes especiais: Naftali tem salto duplo, Dave plana no ar, Walgídio puxa as moedas com um íman e Atircio aguenta um toque.
+Perks: Naftali has a double jump, Dave glides, Walgídio attracts coins with a magnet and Atircio can take one extra hit.
 
-## Como correr
+## Running
 
-Basta abrir o `index.html` no browser. Se preferires um servidor local:
+Just open `index.html` in a browser. Or serve it locally:
 
 ```sh
 python3 -m http.server 8000
-# depois abre http://localhost:8000
+# then open http://localhost:8000
 ```
 
-## Estrutura
+## Layout
 
 ```
-index.html, src/      jogo de luta
-platformer/           jogo de plataformas
-scripts/smoke_test.sh verificação rápida (sintaxe + scripts carregados)
-AGENTS.md             regras para quem (ou o quê) trabalha no repo
+index.html, src/       fighting game
+platformer/            platformer
+tools/                 dev tools (e.g. rig-preview.html for the fighters)
+scripts/smoke_test.sh  quick check (syntax + every script loaded)
+AGENTS.md              rules for anyone (or anything) working on the repo
 ```
 
-## Contribuir
+## Contributing
 
-Lê o `AGENTS.md`. Resumindo: commits pequenos e bem descritos, corre `scripts/smoke_test.sh` antes de cada push, e um agente por pasta.
+Read `AGENTS.md`. In short: small, well-described commits in English, run `scripts/smoke_test.sh` before every push, one agent per folder.
