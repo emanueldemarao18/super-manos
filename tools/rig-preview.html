@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8">
+  <title>Rig Preview</title>
+  <style>body { margin: 0; background: #222; } canvas { display: block; }</style>
+</head>
+<body>
+  <!-- Ferramenta de desenvolvimento: mostra todos os lutadores numa grelha de poses.
+       ?pose=hk,lp mostra só essas poses; ?char=emanuel mostra só um lutador. -->
+  <canvas id="c"></canvas>
+  <script src="../src/config.js"></script>
+  <script src="../src/rig.js"></script>
+  <script src="../src/characters.js"></script>
+  <script>
+    const q = new URLSearchParams(location.search);
+    const poses = (q.get('pose') || 'idle,crouch,lp,hp,lk,hk,chk,proj,blockHi,hitHi').split(',');
+    const chars = q.get('char') ? [SM.charById(q.get('char'))] : SM.CHARACTERS;
+    const S = +(q.get('scale') || 2), CW = 70, CH = 110;
+    const cv = document.getElementById('c');
+    cv.width = poses.length * CW * S;
+    cv.height = chars.length * CH * S;
+    const ctx = cv.getContext('2d');
+    ctx.scale(S, S);
+    chars.forEach((ch, r) => {
+      poses.forEach((p, i) => {
+        ctx.fillStyle = (r + i) % 2 ? '#3a4a6a' : '#34445f';
+        ctx.fillRect(i * CW, r * CH, CW, CH);
+        SM.Rig.draw(ctx, ch, SM.Rig.POSES[p], i * CW + 24, r * CH + CH - 6, 1, { t: 0 });
+        ctx.fillStyle = '#fff';
+        ctx.font = '7px sans-serif';
+        ctx.fillText(i === 0 ? ch.name + ' · ' + p : p, i * CW + 2, r * CH + 8);
+      });
+    });
+  </script>
+</body>
+</html>
