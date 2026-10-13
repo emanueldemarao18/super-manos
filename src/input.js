@@ -19,9 +19,13 @@ SM.Input = (() => {
   let shared = true; // 1 jogador: J1 usa os dois mapas
   const held = [0, 0], prev = [0, 0], pressed = [0, 0];
   let latch = [0, 0]; // toques entre ticks não se perdem
+  const delayQ = [];
+
+  const typing = (e) => /^(INPUT|TEXTAREA)$/.test((e.target && e.target.tagName) || '');
 
   addEventListener('keydown', (e) => {
     if (SM.Audio) SM.Audio.init();
+    if (typing(e)) return;
     if (e.code === 'KeyM' && !e.repeat && SM.Audio) SM.Audio.toggleMute();
     for (let p = 0; p < 2; p++) {
       const b = KEYS[p][e.code];
@@ -68,6 +72,20 @@ SM.Input = (() => {
         prev[p] = h;
       }
       latch = [0, 0];
+      // online: o anfitrião recebe o J2 pela rede e atrasa o próprio J1 para igualar a latência
+      const net = SM.Net;
+      if (net && net.role === 'host' && net.connected) {
+        const r = net.nextRemote();
+        held[1] = r.held;
+        pressed[1] = r.pressed;
+        delayQ.push([held[0], pressed[0]]);
+        while (delayQ.length > net.delay + 1) delayQ.shift();
+        if (delayQ.length > net.delay) {
+          [held[0]] = delayQ[0];
+          // os toques nunca se perdem: junta os que ficaram na fila descartada
+          pressed[0] = delayQ[0][1];
+        } else { held[0] = 0; pressed[0] = 0; }
+      } else delayQ.length = 0;
     },
     held: (p) => held[p],
     pressed: (p) => pressed[p],
