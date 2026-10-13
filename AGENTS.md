@@ -2,7 +2,7 @@
 
 Browser game in vanilla JS, with no build step. Open `index.html` to run it. The `src/*.js` files load
 in the order set in `index.html` and share the global `SM` object (defined in `src/config.js`).
-All in-game text is in European Portuguese.
+All in-game text is in European Portuguese. **Commit messages, README and docs are always in English.**
 
 ## Current state (read first)
 Two games share this repo:
