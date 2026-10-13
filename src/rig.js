@@ -372,8 +372,8 @@ SM.Rig = (() => {
     stroke(); fill(ch.skin);
     ctx.beginPath(); ctx.ellipse(0, -1, 7, 8.6, 0, 0, Math.PI * 2); fill(ch.skin);
     // sombra sob o queixo e orelha
-    ctx.beginPath(); ctx.ellipse(-2.5, 0.5, 2.2, 3, 0, 0, Math.PI * 2); stroke(); fill(SM.shade(ch.skin, 0.88));
-    R(-3.2, -0.5, 1.2, 2.2, dark);
+    ctx.beginPath(); ctx.ellipse(-2.2, 0.6, 1.6, 2.3, 0, 0, Math.PI * 2); fill(SM.shade(ch.skin, 0.8));
+    R(-2.6, 0, 0.9, 1.4, dark);
     // nariz
     ctx.beginPath(); ctx.moveTo(8, -1.5); ctx.lineTo(10.6, 2.6); ctx.lineTo(8, 3.4); ctx.closePath();
     ctx.lineWidth = 1.2; ctx.strokeStyle = flat || OUT; ctx.stroke(); fill(ch.skin);
@@ -422,7 +422,7 @@ SM.Rig = (() => {
         fill(ch.hairColor);
         break;
       case 'flattop':
-        ctx.beginPath(); ctx.moveTo(-8, 1); ctx.lineTo(-8.6, -17); ctx.lineTo(6.4, -17); ctx.lineTo(7.4, -6); ctx.lineTo(4, -6.5); ctx.lineTo(-3.6, -4.5); ctx.lineTo(-4.4, 1); ctx.closePath();
+        ctx.beginPath(); ctx.moveTo(-8, 1); ctx.lineTo(-8.6, -14); ctx.lineTo(6.4, -14); ctx.lineTo(7.4, -6); ctx.lineTo(4, -6.5); ctx.lineTo(-3.6, -4.5); ctx.lineTo(-4.4, 1); ctx.closePath();
         stroke(); fill(ch.hairColor);
         break;
       case 'afro':
@@ -497,8 +497,10 @@ SM.Rig = (() => {
       const cv = document.createElement('canvas');
       cv.width = 120; cv.height = 120;
       const g = cv.getContext('2d');
-      g.scale(2.6, 2.6);
-      draw(g, ch, P[pose], 20, 118 / 2.6 + 52, 1, { t: 0 });
+      // cabeça e ombros centrados: a cabeça fica perto de (60, 44) na canvas de 120×120
+      const k = 2.6, J = solve(ch, P[pose]);
+      g.scale(k, k);
+      draw(g, ch, P[pose], 60 / k - J.headC[0], 44 / k - J.headC[1], 1, { t: 0 });
       portraits.set(key, cv);
     }
     return portraits.get(key);
