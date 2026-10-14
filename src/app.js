@@ -44,7 +44,11 @@ SM.App = (() => {
     if (S.mode === 'arcade') stage = SM.Stages.list[S.ladder.idx % SM.Stages.list.length];
     else stage = S.stageSel >= SM.Stages.list.length ? SM.Stages.list[Math.random() * SM.Stages.list.length | 0] : SM.Stages.list[S.stageSel];
     const p2 = isVersus() ? new SM.Human(1)
-      : S.mode === 'training' ? { read: () => ({ held: 0, pressed: 0 }) }
+      : S.mode === 'training' ? { read: (battle, f) => {
+        const low = battle.trainingGuard === 2;
+        const away = f.opp.x > f.x ? B.left : B.right;
+        return { held: (low ? B.down : 0) | (battle.trainingGuard && f.threat() ? away : 0), pressed: 0 };
+      } }
       : new SM.AI.CPU(S.mode === 'arcade' ? Math.min(3, S.diff + (S.ladder.idx >= 4 ? 1 : 0)) : S.diff);
     S.battle = new SM.Battle({
       chars: [c1, c2], stage, training: S.mode === 'training',
@@ -176,13 +180,15 @@ SM.App = (() => {
         }
         if (S.paused) {
           if (S.showMoves) { if (any & (backBit | confirmBit)) S.showMoves = false; break; }
-          const opts = 3;
+          const opts = bt.training ? 5 : 3;
           if (any & B.down) { S.pauseSel = (S.pauseSel + 1) % opts; A.sfx('select'); }
           if (any & B.up) { S.pauseSel = (S.pauseSel + opts - 1) % opts; A.sfx('select'); }
           if (any & backBit) { S.paused = false; break; }
           if (any & confirmBit) {
             if (S.pauseSel === 0) S.paused = false;
             else if (S.pauseSel === 1) S.showMoves = true;
+            else if (bt.training && S.pauseSel === 2) { bt.resetTraining(); S.paused = false; }
+            else if (bt.training && S.pauseSel === 3) bt.trainingGuard = (bt.trainingGuard + 1) % 3;
             else { A.sfx('back'); go('menu'); }
           }
           break;
@@ -458,10 +464,14 @@ SM.App = (() => {
   function drawPause(ctx) {
     ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, W, H);
     if (S.showMoves) { drawMoveList(ctx, S.battle.fighters[0].ch, 30); return; }
-    U.big(ctx, 'PAUSA', W / 2, 60, 30);
-    ['CONTINUAR', 'LISTA DE GOLPES', 'SAIR PARA O MENU'].forEach((o, i) => {
+    const bt = S.battle;
+    U.big(ctx, bt.training ? 'PAUSA · TREINO' : 'PAUSA', W / 2, bt.training ? 44 : 60, 30);
+    const options = ['CONTINUAR', 'LISTA DE GOLPES'];
+    if (bt.training) options.push('REINICIAR POSIÇÕES', 'DEFESA: ' + SM.Battle.GUARDS[bt.trainingGuard]);
+    options.push('SAIR PARA O MENU');
+    options.forEach((o, i) => {
       const on = i === S.pauseSel;
-      U.text(ctx, (on ? '▶ ' : '') + o, W / 2, 100 + i * 20, { size: on ? 12 : 10, align: 'center', color: on ? '#ffe040' : '#ccc' });
+      U.text(ctx, (on ? '▶ ' : '') + o, W / 2, (bt.training ? 82 : 100) + i * 22, { size: on ? 12 : 10, align: 'center', color: on ? '#ffe040' : '#ccc' });
     });
     U.text(ctx, '↑ ↓ ESCOLHER · F / ENTER CONFIRMAR · ESC VOLTAR', W / 2, H - 20, { size: 7, align: 'center', color: '#bbc8dc' });
   }

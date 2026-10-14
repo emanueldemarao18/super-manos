@@ -10,6 +10,8 @@ SM.Battle = (() => {
       this.opts = opts;
       this.stage = opts.stage;
       this.training = !!opts.training;
+      this.trainingGuard = 0;
+      this.trainingStats = { last: 0, damage: 0, hits: 0, best: 0 };
       this.fighters = opts.chars.map((ch, i) => new SM.Fighter(ch, i, this));
       this.controllers = opts.controllers;
       this.round = 0;
@@ -41,6 +43,15 @@ SM.Battle = (() => {
       this.phaseT = 0;
       this.result = null;
       SM.FX.clear();
+    }
+
+    resetTraining() {
+      if (!this.training) return;
+      this.round = 0;
+      this.startRound();
+      this.fighters.forEach((f) => { f.idleT = 0; });
+      Object.assign(this.trainingStats, { last: 0, damage: 0, hits: 0 });
+      this.phase = 'fight';
     }
 
     // ---------- utilidades ----------
@@ -86,6 +97,13 @@ SM.Battle = (() => {
       this.combo[side] = inCombo ? this.combo[side] + 1 : 1;
       const scaled = Math.round(dmg * (opts.throw || opts.super ? 1 : SM.comboScale(this.combo[side] - 1)));
       def.hp = Math.max(this.training ? 1 : 0, def.hp - scaled);
+      if (this.training && side === 0) {
+        const stats = this.trainingStats;
+        stats.last = scaled;
+        stats.damage = this.combo[side] === 1 ? scaled : stats.damage + scaled;
+        stats.hits = this.combo[side];
+        stats.best = Math.max(stats.best, stats.damage);
+      }
       att.meter = Math.min(SM.METER_MAX, att.meter + scaled * 0.06 + 1);
       def.meter = Math.min(SM.METER_MAX, def.meter + scaled * 0.04);
       if (this.combo[side] >= 2) { this.comboShow[side] = this.combo[side]; this.comboT[side] = 80; }
@@ -480,7 +498,7 @@ SM.Battle = (() => {
         U.bar(ctx, mx, my, mw, 7, f.meter / SM.METER_MAX, full ? (this.t % 20 < 10 ? '#60f0ff' : '#ffffff') : '#2a8aff', i === 0 ? -1 : 1, '#001030');
         U.text(ctx, full ? 'SUPER!' : 'SUPER', i === 0 ? mx + mw + 4 : mx - 4, my + 4, { size: 6, align: i === 0 ? 'left' : 'right', color: full ? '#80f8ff' : '#9ab' });
         // combos
-        if (this.comboT[i] > 0) {
+        if (!this.training && this.comboT[i] > 0) {
           const cx = i === 0 ? 50 : W - 50;
           U.text(ctx, this.comboShow[i] + ' GOLPES', cx, 64, { size: 13, align: 'center', color: '#ffe040', font: SM.FONT_BIG });
           U.text(ctx, 'COMBO', cx, 76, { size: 8, align: 'center', color: '#fff' });
@@ -490,6 +508,15 @@ SM.Battle = (() => {
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
       ctx.fillRect(W / 2 - 15, 6, 30, 22);
       U.text(ctx, this.training ? '∞' : String(this.timer).padStart(2, '0'), W / 2, 18, { size: 16, align: 'center', color: this.timer <= 10 ? '#ff5050' : '#fff', font: SM.FONT_BIG });
+
+      if (this.training) {
+        const stats = this.trainingStats;
+        U.text(ctx, 'TREINO · DEFESA: ' + Battle.GUARDS[this.trainingGuard], W / 2, 40, { size: 7, align: 'center', color: '#80f0ff' });
+        U.panel(ctx, 10, 49, 156, 39, 'rgba(0,0,16,0.72)', '#567082');
+        U.text(ctx, 'DANO ' + stats.last + '   ·   ' + stats.hits + (stats.hits === 1 ? ' GOLPE' : ' GOLPES'), 18, 61, { size: 8, color: '#fff' });
+        U.text(ctx, 'COMBO ' + stats.damage + '   ·   MELHOR ' + stats.best, 18, 77, { size: 7, color: '#ffe040' });
+        U.text(ctx, 'ENTER: OPÇÕES DE TREINO', W / 2, SM.H - 5, { size: 6, align: 'center', color: '#cde' });
+      }
 
       // anúncios de golpes especiais / supers
       this.callouts.forEach((c) => {
@@ -532,5 +559,6 @@ SM.Battle = (() => {
     }
   }
 
+  Battle.GUARDS = ['SEM DEFESA', 'EM PÉ', 'AGACHADO'];
   return Battle;
 })();
