@@ -37,7 +37,13 @@ SM.Input = (() => {
     down.add(e.code);
   });
   addEventListener('keyup', (e) => down.delete(e.code));
-  addEventListener('blur', () => down.clear());
+  const clear = () => {
+    down.clear();
+    held.fill(0); prev.fill(0); pressed.fill(0); latch.fill(0);
+    delayQ.length = 0;
+  };
+  addEventListener('blur', clear);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) clear(); });
 
   const readPad = (gp) => {
     if (!gp) return 0;

@@ -15,6 +15,13 @@ SM.App = (() => {
     ladder: null, stageOrder: null, result: null, continueT: 0,
     guest: false, onSel: 0,
   };
+  const pauseOnLeave = () => {
+    if (S.screen !== 'fight' || S.mode === 'online' || !S.battle || S.battle.phase === 'over') return;
+    if (!S.paused) { S.pauseSel = 0; S.showMoves = false; }
+    S.paused = true;
+  };
+  addEventListener('blur', pauseOnLeave);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pauseOnLeave(); });
   const isVersus = () => S.mode === 'versus' || S.mode === 'online';
 
   const go = (screen) => { S.screen = screen; S.t = 0; };
@@ -163,8 +170,8 @@ SM.App = (() => {
 
       case 'fight': {
         const bt = S.battle;
-        if (!online && (p1 | p2) & (B.start | B.back) && bt.phase !== 'over') {
-          S.paused = !S.paused; S.pauseSel = 0; S.showMoves = false; A.sfx('select');
+        if (!online && !S.paused && (p1 | p2) & (B.start | B.back) && bt.phase !== 'over') {
+          S.paused = true; S.pauseSel = 0; S.showMoves = false; A.sfx('select');
           break;
         }
         if (S.paused) {
@@ -172,8 +179,8 @@ SM.App = (() => {
           const opts = 3;
           if (any & B.down) { S.pauseSel = (S.pauseSel + 1) % opts; A.sfx('select'); }
           if (any & B.up) { S.pauseSel = (S.pauseSel + opts - 1) % opts; A.sfx('select'); }
-          if (any & backBit) S.paused = false;
-          if (any & (B.lp | B.lk)) {
+          if (any & backBit) { S.paused = false; break; }
+          if (any & confirmBit) {
             if (S.pauseSel === 0) S.paused = false;
             else if (S.pauseSel === 1) S.showMoves = true;
             else { A.sfx('back'); go('menu'); }
@@ -456,6 +463,7 @@ SM.App = (() => {
       const on = i === S.pauseSel;
       U.text(ctx, (on ? '▶ ' : '') + o, W / 2, 100 + i * 20, { size: on ? 12 : 10, align: 'center', color: on ? '#ffe040' : '#ccc' });
     });
+    U.text(ctx, '↑ ↓ ESCOLHER · F / ENTER CONFIRMAR · ESC VOLTAR', W / 2, H - 20, { size: 7, align: 'center', color: '#bbc8dc' });
   }
 
   function drawMoveList(ctx, ch, y) {
