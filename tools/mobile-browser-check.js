@@ -19,11 +19,30 @@ async page => {
     return {blocked,scale:visualViewport.scale,width:innerWidth,height:innerHeight};
   });
   if(!zoom.blocked || zoom.scale!==viewportBefore.scale || zoom.width!==viewportBefore.width || zoom.height!==viewportBefore.height) throw Error('Combat gestures changed the mobile viewport');
+  const joystick = await phone.evaluate(() => {
+    SM.Touch.read();
+    const stick=document.querySelector('#touch .stick'),origin=document.querySelector('#touch .origin');
+    const center=origin.getBoundingClientRect(),b=SM.BTN;
+    const send=(type,x,y,id=99)=>stick.dispatchEvent(new PointerEvent(type,{pointerId:id,pointerType:'touch',clientX:x,clientY:y,bubbles:true}));
+    const directions=[[42,0,b.right],[42,42,b.right|b.down],[0,42,b.down],[-42,42,b.left|b.down],[-42,0,b.left],[-42,-42,b.left|b.up],[0,-42,b.up],[42,-42,b.right|b.up]];
+    const visible=getComputedStyle(document.querySelector('#touch .base')).display!=='none';
+    const correct=directions.every(([dx,dy,want])=>{
+      send('pointerdown',center.left,center.top);
+      send('pointermove',center.left+dx,center.top+dy);
+      const got=SM.Touch.read();
+      send('pointerup',center.left+dx,center.top+dy);
+      return got===want && SM.Touch.read()===0;
+    });
+    const knob=document.querySelector('#touch .knob');
+    return {visible,eightDirections:correct,recentered:knob.style.left==='0px'&&knob.style.top==='0px'};
+  });
+  if(!joystick.visible||!joystick.eightDirections||!joystick.recentered)throw Error('Joystick visibility, directions or recenter failed: '+JSON.stringify(joystick));
   const before=await phone.evaluate(()=>SM.App.S.battle.fighters[0].x);
   await phone.evaluate(()=> {
     const stick=document.querySelector('#touch .stick');
-    stick.dispatchEvent(new PointerEvent('pointerdown',{pointerId:100,pointerType:'touch',clientX:90,clientY:300,bubbles:true}));
-    stick.dispatchEvent(new PointerEvent('pointermove',{pointerId:100,pointerType:'touch',clientX:135,clientY:300,bubbles:true}));
+    const center=document.querySelector('#touch .origin').getBoundingClientRect();
+    stick.dispatchEvent(new PointerEvent('pointerdown',{pointerId:100,pointerType:'touch',clientX:center.left,clientY:center.top,bubbles:true}));
+    stick.dispatchEvent(new PointerEvent('pointermove',{pointerId:100,pointerType:'touch',clientX:center.left+42,clientY:center.top,bubbles:true}));
     document.querySelector('[data-b="lp"]').dispatchEvent(new PointerEvent('pointerdown',{pointerId:101,pointerType:'touch',bubbles:true}));
   });
   const simultaneous=await phone.evaluate(()=>{const h=SM.Touch.read();return !!(h&SM.BTN.right)&&!!(h&SM.BTN.lp);});
@@ -61,5 +80,5 @@ async page => {
   await phone.screenshot({path:'/private/tmp/manos-mobile-lobby.png'});
   if(errors.length)throw Error(errors.join('\n'));
   await context.close();
-  return {viewport:'844x390 landscape / 390x844 portrait',zoom,simultaneous,move:after-before,touchDamage:damage,blurRelease:released,combatAtlasesLoaded:loaded,portraitLobby:true,pageErrors:errors};
+  return {viewport:'844x390 landscape / 390x844 portrait',zoom,joystick,simultaneous,move:after-before,touchDamage:damage,blurRelease:released,combatAtlasesLoaded:loaded,portraitLobby:true,pageErrors:errors};
 }

@@ -1,5 +1,5 @@
 'use strict';
-// Controlos de toque para telemóvel/tablet: joystick flutuante à esquerda, botões de ataque à
+// Controlos de toque para telemóvel/tablet: joystick fixo à esquerda, botões de ataque à
 // direita. Aparecem ao primeiro toque e alimentam o jogador 1 como se fosse um comando.
 
 SM.Touch = (() => {
@@ -11,11 +11,17 @@ SM.Touch = (() => {
     #touch { position: fixed; inset: 0; z-index: 5; pointer-events: none; display: none;
       user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none; font-family: "Russo One", sans-serif; }
     #touch.on { display: block; }
-    #touch .stick { position: absolute; left: 0; bottom: 0; width: 45%; height: 70%; pointer-events: auto; touch-action: none; }
-    #touch .base, #touch .knob { position: absolute; border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%); }
-    #touch .base { width: 120px; height: 120px; background: rgba(255,255,255,0.10); border: 2px solid rgba(255,255,255,0.35); display: none; }
-    #touch .knob { width: 54px; height: 54px; background: rgba(255,255,255,0.45); border: 2px solid rgba(255,255,255,0.8); display: none; }
-    #touch .hint { position: absolute; left: 12%; bottom: 14%; color: rgba(255,255,255,0.35); font-size: 12px; pointer-events: none; }
+    #touch .stick { position: absolute; left: 0; bottom: 0; width: 46%; height: 76%; pointer-events: auto; touch-action: none; }
+    #touch .origin { position: absolute; left: max(100px, calc(env(safe-area-inset-left) + 80px)); bottom: max(96px, calc(env(safe-area-inset-bottom) + 80px)); width: 0; height: 0; pointer-events: none; }
+    #touch .base, #touch .knob { position: absolute; left: 0; top: 0; border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%); }
+    #touch .base { width: 136px; height: 136px; background: rgba(8,18,30,0.5); border: 2px solid rgba(190,225,245,0.65); box-shadow: inset 0 0 0 14px rgba(255,255,255,0.04); }
+    #touch .base::before, #touch .base::after { content: ''; position: absolute; background: rgba(190,225,245,0.2); }
+    #touch .base::before { left: 50%; top: 8px; bottom: 8px; width: 1px; }
+    #touch .base::after { top: 50%; left: 8px; right: 8px; height: 1px; }
+    #touch .knob { width: 58px; height: 58px; background: rgba(155,200,225,0.65); border: 2px solid rgba(225,245,255,0.9); box-shadow: 0 3px 12px rgba(0,0,0,0.35); }
+    #touch .origin.engaged .base { border-color: #67e8ff; }
+    #touch .origin.engaged .knob { background: rgba(65,205,235,0.9); }
+    #touch .hint { position: absolute; left: 0; top: 77px; transform: translateX(-50%); color: rgba(235,245,255,0.8); font-size: 11px; white-space: nowrap; pointer-events: none; }
     #touch .pad { position: absolute; right: 2.5%; bottom: max(4%, env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(2, 64px); gap: 10px; pointer-events: auto; }
     #touch .btn { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-align: center;
       font-family: inherit; padding: 0; font-size: 11px; line-height: 1.05; color: #fff; text-shadow: 0 1px 2px #000; border: 2px solid rgba(255,255,255,0.7); touch-action: none; }
@@ -28,7 +34,7 @@ SM.Touch = (() => {
       font-size: 16px; background: rgba(0,0,0,0.45); pointer-events: auto; }
     #touch .back { position: absolute; top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); width: 70px; height: 44px; border-radius: 8px; font-size: 10px;
       background: rgba(0,0,0,0.45); pointer-events: auto; }
-    #touch.lobby .stick, #touch.lobby .pad, #touch.lobby .menu { display: none; }
+    #touch.lobby .stick, #touch.lobby .origin, #touch.lobby .pad, #touch.lobby .menu { display: none; }
     #rotate { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; flex-direction: column;
       background: rgba(0,0,0,0.88); color: #fff; font: 18px "Russo One", sans-serif; text-align: center; gap: 12px; }
     #rotate .icon { font-size: 54px; animation: spin 1.6s ease-in-out infinite; }
@@ -41,7 +47,8 @@ SM.Touch = (() => {
   const root = document.createElement('div');
   root.id = 'touch';
   root.innerHTML = `
-    <div class="stick"><div class="hint">MOVER</div></div><div class="base"></div><div class="knob"></div>
+    <div class="stick" role="group" aria-label="Movimento: arrasta para andar, saltar ou agachar"></div>
+    <div class="origin" aria-hidden="true"><div class="base"></div><div class="knob"></div><div class="hint">MOVER</div></div>
     <div class="pad">
       <button type="button" class="btn p" data-b="lp">SOCO</button><button type="button" class="btn p" data-b="hp">SOCO<br>FORTE</button>
       <button type="button" class="btn k" data-b="lk">PONTA-<br>PÉ</button><button type="button" class="btn k" data-b="hk">PONTAPÉ<br>FORTE</button>
@@ -55,15 +62,14 @@ SM.Touch = (() => {
   rot.innerHTML = '<div class="icon">📱</div><div>Roda o telemóvel<br>para jogar deitado</div>';
   document.body.appendChild(rot);
 
-  const stick = root.querySelector('.stick'), base = root.querySelector('.base'), knob = root.querySelector('.knob');
-  const hint = root.querySelector('.hint');
+  const stick = root.querySelector('.stick'), origin = root.querySelector('.origin'), knob = root.querySelector('.knob');
 
   // captura o dedo no elemento (se o browser deixar) para não o perder ao deslizar
   const capture = (el, e) => { try { el.setPointerCapture(e.pointerId); } catch { /* toque simulado */ } };
 
   // ---------- joystick ----------
   let stickId = null, cx = 0, cy = 0, dirBits = 0;
-  const R = 50, DEAD = 16;
+  const R = 42, DEAD = 12;
   const setDir = (dx, dy) => {
     let b = 0;
     const d = Math.hypot(dx, dy);
@@ -80,25 +86,31 @@ SM.Touch = (() => {
     if (stickId !== null) return;
     stickId = e.pointerId;
     capture(stick, e);
-    cx = e.clientX; cy = e.clientY;
-    for (const el of [base, knob]) { el.style.display = 'block'; el.style.left = cx + 'px'; el.style.top = cy + 'px'; }
-    hint.style.display = 'none';
+    const center = origin.getBoundingClientRect();
+    cx = center.left; cy = center.top;
+    origin.classList.add('engaged');
+    moveStick(e);
     e.preventDefault();
   });
-  stick.addEventListener('pointermove', (e) => {
+  function moveStick(e) {
     if (e.pointerId !== stickId) return;
     let dx = e.clientX - cx, dy = e.clientY - cy;
     const d = Math.hypot(dx, dy);
     if (d > R) { dx *= R / d; dy *= R / d; }
-    knob.style.left = cx + dx + 'px';
-    knob.style.top = cy + dy + 'px';
+    knob.style.left = dx + 'px';
+    knob.style.top = dy + 'px';
     setDir(dx, dy);
-  });
+  }
+  stick.addEventListener('pointermove', moveStick);
+  function centerStick() {
+    knob.style.left = knob.style.top = '0px';
+    origin.classList.remove('engaged');
+  }
   const stickEnd = (e) => {
     if (e.pointerId !== stickId) return;
     stickId = null;
     dirBits = 0;
-    base.style.display = knob.style.display = 'none';
+    centerStick();
   };
   stick.addEventListener('pointerup', stickEnd);
   stick.addEventListener('pointercancel', stickEnd);
@@ -125,7 +137,7 @@ SM.Touch = (() => {
 
   function clear() {
     held.clear(); latch = dirBits = 0; stickId = null;
-    base.style.display = knob.style.display = 'none';
+    centerStick();
     for (const el of root.querySelectorAll('.down')) el.classList.remove('down');
   }
   addEventListener('blur', clear);
