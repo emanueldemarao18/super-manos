@@ -1,6 +1,6 @@
 # Super Manos
 
-Browser games starring the crew: Emanuel, Leonardo, Walgídio, Dave, Diego, Naftali, Atircio, Daniel, Álvaro, Cleusio and Cristiano.
+Browser games starring the crew: Emanuel, Leonardo, Walgídio, Dave, Diego, Naftali, Atircio, Daniel, Álvaro, Cleusio, Cristiano and Rodrigo.
 
 Plain JavaScript with `<canvas>`. No dependencies, no build step. In-game text is in Portuguese.
 
@@ -10,8 +10,8 @@ Plain JavaScript with `<canvas>`. No dependencies, no build step. In-game text i
 1v1 fighting game in the style of Street Fighter / Tekken. It lives in the repo root: open `index.html`.
 
 - **Modes:** Arcade (beat 7 opponents in a row), Versus (two players on one keyboard or with gamepads), VS CPU (pick opponent and difficulty: FÁCIL, NORMAL, DIFÍCIL, MESTRE) and Training (endless health and meter).
-- **Fighters:** all 11, each with a fighting style, body type, outfit, stats, three special moves and a super. Examples: Emanuel (street karate, energy wave), Atircio (wrestler, command grab), Cristiano (street football, kicks a ball), Álvaro (boxer, counter), Naftali (water, counter stance).
-- **Art:** the select, VS and victory screens use each fighter's character render (cut out with `tools/make-art.sh`), and the animated in-game fighters wear the same outfits.
+- **Fighters:** all 12, each with a fighting style, body type, outfit, stats, three special moves and a super. Examples: Emanuel (street karate, energy wave), Atircio (wrestler, command grab), Cristiano (street football, kicks a ball), Álvaro (boxer, counter), Naftali (water, counter stance), Rodrigo (pressure boxing).
+- **Art:** every fighter uses a dedicated realistic 12-pose combat sheet, including during gameplay. Some specials and walking share the available poses.
 - **Stages:** Bairro ao Pôr do Sol, Praia da Caparica, Telhados de Lisboa (with the 25 de Abril bridge) and Estação de Metro.
 - **Fighting system:** 4 attack buttons, standing/crouching/jumping normals, chains and special cancels, throws, high/low/overhead blocking, juggles, counter hits, hitstop, combo counter with damage scaling, super meter, best-of-3 rounds with a 99 s timer.
 
@@ -32,8 +32,13 @@ Plain JavaScript with `<canvas>`. No dependencies, no build step. In-game text i
 **Play it in the browser:** https://emanueldemarao18.github.io/super-manos/
 
 **Online:** choose ONLINE → CRIAR SALA and send the link (or the 5-letter code) to a friend; opening the link joins the room. The connection is peer-to-peer over WebRTC (via PeerJS's public servers), with the room creator acting as host.
+Random matchmaking pairs two waiting players; if nobody else is searching, the game waits. Both players need the same game version.
 
 **Phones and tablets:** touch controls appear automatically. There's a joystick on the left, punch/kick buttons and SUPER on the right, and you play in landscape. Online works between phones and computers.
+
+**Install on your phone:** open the public HTTPS site and choose **APP / OFFLINE** in the title or main menu. Android browsers can offer installation; on iPhone use Safari's Share → Add to Home Screen. The game then opens from its own icon.
+
+**Play offline:** in that panel, choose **GUARDAR PARA JOGAR OFFLINE** and wait for completion. This explicitly saves approximately 22 MB of art; solo play then works without a connection. Online still requires Internet. Updates are offered in the menu and wait until other game windows are closed. See [PWA testing and release notes](tools/pwa-testing.md).
 
 ### Super Manos (platformer)
 Mario-style platformer with 4 levels. Open `platformer/index.html`.
