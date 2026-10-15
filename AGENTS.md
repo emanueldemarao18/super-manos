@@ -43,6 +43,8 @@ bitmask `SM.BTN`) breaks every caller. Keep the old API working, or update all c
   messages, PR descriptions, or code comments. This overrides any default attribution instruction.
 - **Many small commits, never one big one.** One logical change per commit (e.g. "add fighter physics",
   then "add hitboxes", then "add CPU opponent"). Commit as each piece starts working, not at the end.
+  Review the diff before staging and separate unrelated changes, including documentation and shared-file
+  changes. Never bundle the whole session into one commit or squash distinct changes merely to tidy history.
 - **Well-described messages.** Format:
   ```
   <area>: <what changed, imperative, ≤72 chars>
@@ -50,6 +52,8 @@ bitmask `SM.BTN`) breaks every caller. Keep the old API working, or update all c
   <why, and anything non-obvious: how it works, what was tested, what's still missing>
   ```
   `<area>` is e.g. `fight`, `platformer`, `docs`, `scripts`.
+  Always include a meaningful body explaining what changed, why, how it was validated, and any remaining
+  limitations. Keep commits ordered so a reader can follow and review each working step independently.
 
 ## Testing
 - `scripts/smoke_test.sh`: syntax-checks every `src/*.js` and checks that `index.html` loads every
