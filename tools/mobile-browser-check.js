@@ -1,5 +1,6 @@
 async page => {
   const context = await page.context().browser().newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true,deviceScaleFactor:2});
+  await context.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{if(window.SM?.Audio&&!SM.Audio.muted)SM.Audio.toggleMute();},{once:true}));
   const phone = await context.newPage();
   const errors=[];phone.on('pageerror',e=>errors.push(e.message));
   await phone.goto('http://127.0.0.1:8765/');

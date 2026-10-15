@@ -1,4 +1,5 @@
 async page => {
+  await page.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{if(window.SM?.Audio&&!SM.Audio.muted)SM.Audio.toggleMute();},{once:true}));
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('http://127.0.0.1:8765/tools/online-test.html?auto=1');
