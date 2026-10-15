@@ -4,7 +4,7 @@
 
 SM.Touch = (() => {
   const B = SM.BTN;
-  let bits = 0, latch = 0, active = false;
+  let latch = 0, active = false;
 
   const css = `
     #touch { position: fixed; inset: 0; z-index: 5; pointer-events: none; display: none;
@@ -15,23 +15,24 @@ SM.Touch = (() => {
     #touch .base { width: 120px; height: 120px; background: rgba(255,255,255,0.10); border: 2px solid rgba(255,255,255,0.35); display: none; }
     #touch .knob { width: 54px; height: 54px; background: rgba(255,255,255,0.45); border: 2px solid rgba(255,255,255,0.8); display: none; }
     #touch .hint { position: absolute; left: 12%; bottom: 14%; color: rgba(255,255,255,0.35); font-size: 12px; pointer-events: none; }
-    #touch .pad { position: absolute; right: 2.5%; bottom: 4%; display: grid; grid-template-columns: repeat(2, 64px); gap: 10px; pointer-events: auto; }
+    #touch .pad { position: absolute; right: 2.5%; bottom: max(4%, env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(2, 64px); gap: 10px; pointer-events: auto; }
     #touch .btn { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-align: center;
-      font-size: 11px; line-height: 1.05; color: #fff; text-shadow: 0 1px 2px #000; border: 2px solid rgba(255,255,255,0.7); touch-action: none; }
+      font-family: inherit; padding: 0; font-size: 11px; line-height: 1.05; color: #fff; text-shadow: 0 1px 2px #000; border: 2px solid rgba(255,255,255,0.7); touch-action: none; }
     #touch .p { background: rgba(240,170,30,0.55); }
     #touch .k { background: rgba(40,130,255,0.55); }
     #touch .btn.down { filter: brightness(1.6); transform: scale(0.93); }
     #touch .super { position: absolute; right: calc(2.5% + 148px); bottom: calc(4% + 37px); width: 58px; height: 58px; font-size: 10px;
       background: rgba(255,60,120,0.55); pointer-events: auto; }
-    #touch .menu { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); width: 44px; height: 30px; border-radius: 8px;
+    #touch .menu { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); width: 48px; height: 44px; border-radius: 8px;
       font-size: 16px; background: rgba(0,0,0,0.45); pointer-events: auto; }
-    #touch .back { position: absolute; top: 8px; left: 8px; width: 64px; height: 30px; border-radius: 8px; font-size: 10px;
+    #touch .back { position: absolute; top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); width: 70px; height: 44px; border-radius: 8px; font-size: 10px;
       background: rgba(0,0,0,0.45); pointer-events: auto; }
+    #touch.lobby .stick, #touch.lobby .pad, #touch.lobby .menu { display: none; }
     #rotate { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; flex-direction: column;
       background: rgba(0,0,0,0.88); color: #fff; font: 18px "Russo One", sans-serif; text-align: center; gap: 12px; }
     #rotate .icon { font-size: 54px; animation: spin 1.6s ease-in-out infinite; }
     @keyframes spin { 0%, 30% { transform: rotate(0); } 70%, 100% { transform: rotate(-90deg); } }
-    @media (orientation: portrait) { body.touching #rotate { display: flex; } }`;
+    @media (orientation: portrait) { body.touching.fighting #rotate { display: flex; pointer-events: none; background: rgba(0,0,0,0.7); } }`;
   const style = document.createElement('style');
   style.textContent = css;
   document.head.appendChild(style);
@@ -41,12 +42,12 @@ SM.Touch = (() => {
   root.innerHTML = `
     <div class="stick"><div class="hint">MOVER</div></div><div class="base"></div><div class="knob"></div>
     <div class="pad">
-      <div class="btn p" data-b="lp">SOCO</div><div class="btn p" data-b="hp">SOCO<br>FORTE</div>
-      <div class="btn k" data-b="lk">PONTA-<br>PÉ</div><div class="btn k" data-b="hk">PONTAPÉ<br>FORTE</div>
+      <button type="button" class="btn p" data-b="lp">SOCO</button><button type="button" class="btn p" data-b="hp">SOCO<br>FORTE</button>
+      <button type="button" class="btn k" data-b="lk">PONTA-<br>PÉ</button><button type="button" class="btn k" data-b="hk">PONTAPÉ<br>FORTE</button>
     </div>
-    <div class="btn super" data-b="super">SUPER</div>
-    <div class="btn menu" data-b="start">☰</div>
-    <div class="btn back" data-b="back">◀ VOLTAR</div>`;
+    <button type="button" class="btn super" data-b="super">SUPER</button>
+    <button type="button" class="btn menu" data-b="start">☰</button>
+    <button type="button" class="btn back" data-b="back">◀ VOLTAR</button>`;
   document.body.appendChild(root);
   const rot = document.createElement('div');
   rot.id = 'rotate';
@@ -100,6 +101,7 @@ SM.Touch = (() => {
   };
   stick.addEventListener('pointerup', stickEnd);
   stick.addEventListener('pointercancel', stickEnd);
+  stick.addEventListener('lostpointercapture', stickEnd);
 
   // ---------- botões ----------
   const held = new Map(); // pointerId -> bits
@@ -117,7 +119,17 @@ SM.Touch = (() => {
     const up = (e) => { held.delete(e.pointerId); el.classList.remove('down'); };
     el.addEventListener('pointerup', up);
     el.addEventListener('pointercancel', up);
+    el.addEventListener('lostpointercapture', up);
   }
+
+  function clear() {
+    held.clear(); latch = dirBits = 0; stickId = null;
+    base.style.display = knob.style.display = 'none';
+    for (const el of root.querySelectorAll('.down')) el.classList.remove('down');
+  }
+  addEventListener('blur', clear);
+  addEventListener('resize', clear);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) clear(); });
 
   // ---------- ativação ----------
   function activate() {
@@ -133,7 +145,7 @@ SM.Touch = (() => {
     if (SM.App && SM.App.S.screen === 'title') latch |= B.start;
     // ecrã inteiro e horizontal (Android); no iPhone fica só o aviso para rodar
     const de = document.documentElement;
-    if (!document.fullscreenElement && de.requestFullscreen && !e.target.closest('#netui')) {
+    if (SM.App && SM.App.S.screen === 'fight' && !document.fullscreenElement && de.requestFullscreen && !e.target.closest('#netui')) {
       de.requestFullscreen({ navigationUI: 'hide' }).then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {})).catch(() => {});
     }
   }, { passive: true });
@@ -151,7 +163,11 @@ SM.Touch = (() => {
     // em ecrãs com menus mostra o botão VOLTAR; na luta mostra o SUPER
     setScreen(screen) {
       const fight = screen === 'fight';
-      root.querySelector('.back').style.display = fight ? 'none' : '';
+      document.body.classList.toggle('fighting', fight);
+      root.classList.toggle('lobby', ['host', 'join', 'search'].includes(screen));
+      const back = root.querySelector('.back');
+      back.style.display = fight && !SM.Net.connected ? 'none' : '';
+      back.textContent = fight ? 'SAIR' : '◀ VOLTAR';
       root.querySelector('.super').style.display = fight ? '' : 'none';
     },
   };

@@ -37,7 +37,7 @@
     });
     }
     render();
-    SM.Art.loaded.then(render);
+    SM.Art.preload(SM.CHARACTERS.map(ch => ch.id)).then(render);
   </script>
 </body>
 </html>

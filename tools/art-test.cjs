@@ -21,6 +21,7 @@ const ctx=vm.createContext({console,URL,Image,Map,Promise,window:{},document:{
 }});
 for(const f of ['config','rig','characters','art'])vm.runInContext(fs.readFileSync(path.join(root,'src',f+'.js'),'utf8'),ctx);
 const SM=ctx.window.SM;
+SM.Art.preload(SM.CHARACTERS.map(ch => ch.id));
 let draws=0, atlases=0;
 for(const ch of SM.CHARACTERS) {
   if(SM.Art.combatReady(ch.id))atlases++;

@@ -65,14 +65,20 @@ SM.Art = (() => {
     img.src = base + src;
     return img;
   };
-  for (const ch of SM.CHARACTERS) {
-    imgs.set(ch.id, load(ch.id + '.webp', () => {}));
-    const spec = SHEETS[ch.id];
-    if (spec) load('combat/' + spec.file, img => {
-      const images = spec.frames.map(frame => cutFrame(img, frame));
-      sheets.set(ch.id, { images, ...spec });
-      previews.set(ch.id,images[0]);
-    });
+  for (const ch of SM.CHARACTERS) imgs.set(ch.id, load(ch.id + '.webp', () => {}));
+  const requested = new Set();
+  function preload(ids) {
+    for (const id of ids) {
+      const spec = SHEETS[id];
+      if (!spec || requested.has(id)) continue;
+      requested.add(id);
+      load('combat/' + spec.file, img => {
+        const images = spec.frames.map(frame => cutFrame(img, frame));
+        sheets.set(id, { images, ...spec });
+        previews.set(id, images[0]);
+      });
+    }
+    return Promise.all(loads);
   }
   const ready = id => {
     const preview = previews.get(id);
@@ -81,6 +87,7 @@ SM.Art = (() => {
     return img && img.complete && img.naturalWidth > 0 ? img : null;
   };
   function full(ctx, id, x, y, height, face = -1, alpha = 1) {
+    if (!requested.has(id)) preload([id]);
     const img = ready(id);
     if (!img) return false;
     const w = img.width / img.height * height;
@@ -91,6 +98,7 @@ SM.Art = (() => {
     return true;
   }
   function fight(ctx, ch, pose, x, y, face, opts = {}) {
+    if (!requested.has(ch.id)) preload([ch.id]);
     const sheet = sheets.get(ch.id);
     if (!sheet) { full(ctx,ch.id,x,y,96*ch.body.size,face,opts.alpha === undefined ? 1 : opts.alpha); return; }
     const frame = FRAMES[pose.sprite] === undefined ? 0 : FRAMES[pose.sprite];
@@ -110,7 +118,7 @@ SM.Art = (() => {
     ctx.restore();
   }
   return {
-    loaded: Promise.all(loads), ready, full, fight, frames: FRAMES,
+    get loaded() { return Promise.all(loads); }, preload, ready, full, fight, frames: FRAMES,
     combatReady: id => sheets.has(id),
     face(ctx,id,x,y,w,h) {
       const img = ready(id); if (!img) return false;

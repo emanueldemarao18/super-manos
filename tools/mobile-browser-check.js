@@ -1,0 +1,48 @@
+async page => {
+  const context = await page.context().browser().newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true,deviceScaleFactor:2});
+  const phone = await context.newPage();
+  const errors=[];phone.on('pageerror',e=>errors.push(e.message));
+  await phone.goto('http://127.0.0.1:8765/');
+  await phone.touchscreen.tap(420,190);
+  await phone.waitForFunction(()=>SM.Touch.active);
+  await phone.evaluate(()=>{SM.App.S.mode='training';SM.App.S.picked=[0,1];SM.App.S.stageSel=0;SM.App.S.screen='fightNow';});
+  await phone.waitForFunction(()=>SM.App.S.screen==='fight' && SM.Art.combatReady('emanuel') && SM.Art.combatReady('leonardo'));
+  await phone.waitForTimeout(1800);
+  const before=await phone.evaluate(()=>SM.App.S.battle.fighters[0].x);
+  await phone.evaluate(()=> {
+    const stick=document.querySelector('#touch .stick');
+    stick.dispatchEvent(new PointerEvent('pointerdown',{pointerId:100,pointerType:'touch',clientX:90,clientY:300,bubbles:true}));
+    stick.dispatchEvent(new PointerEvent('pointermove',{pointerId:100,pointerType:'touch',clientX:135,clientY:300,bubbles:true}));
+    document.querySelector('[data-b="lp"]').dispatchEvent(new PointerEvent('pointerdown',{pointerId:101,pointerType:'touch',bubbles:true}));
+  });
+  const simultaneous=await phone.evaluate(()=>{const h=SM.Touch.read();return !!(h&SM.BTN.right)&&!!(h&SM.BTN.lp);});
+  if(!simultaneous)throw Error('Joystick and attack cannot be held together');
+  await phone.waitForTimeout(500);
+  await phone.evaluate(()=>{document.querySelector('[data-b="lp"]').dispatchEvent(new PointerEvent('pointerup',{pointerId:101,bubbles:true}));document.querySelector('#touch .stick').dispatchEvent(new PointerEvent('pointerup',{pointerId:100,bubbles:true}));});
+  await phone.waitForTimeout(200);
+  const after=await phone.evaluate(()=>SM.App.S.battle.fighters[0].x);
+  if(after<=before)throw Error('Touch movement did not move fighter');
+  await phone.evaluate(()=>{const fs=SM.App.S.battle.fighters;fs[0].x=320;fs[1].x=360;SM.App.S.paused=false;});
+  const hp=await phone.evaluate(()=>SM.App.S.battle.fighters[1].hp);
+  await phone.locator('[data-b="hp"]').tap();
+  await phone.waitForTimeout(700);
+  const damage=hp-await phone.evaluate(()=>SM.App.S.battle.fighters[1].hp);
+  if(damage<=0)throw Error('Touch attack did not land');
+  const released=await phone.evaluate(()=>{const b=document.querySelector('[data-b="hk"]');b.dispatchEvent(new PointerEvent('pointerdown',{pointerId:102,bubbles:true}));window.dispatchEvent(new Event('blur'));return SM.Touch.read()===0;});
+  if(!released)throw Error('Interrupted touch stuck held');
+  await phone.screenshot({path:'/private/tmp/manos-mobile-fight.png'});
+  const loaded=await phone.evaluate(()=>performance.getEntriesByType('resource').filter(r=>r.name.includes('/combat/')).length);
+  if(loaded>3)throw Error('All combat atlases downloaded on mobile startup');
+  await phone.evaluate(()=>{SM.App.S.screen='join';SM.App.S.mode=null;SM.App.S.battle=null;});
+  await phone.setViewportSize({width:390,height:844});
+  await phone.waitForTimeout(300);
+  await phone.locator('#netui .code').tap();await phone.locator('#netui .code').fill('ZZZZZ');
+  const portrait=await phone.evaluate(()=>({rotate:getComputedStyle(document.querySelector('#rotate')).display,overflow:document.documentElement.scrollWidth>innerWidth,field:document.querySelector('#netui .code').getBoundingClientRect().toJSON()}));
+  if(portrait.rotate!=='none'||portrait.overflow)throw Error('Portrait lobby blocked or overflowing');
+  await phone.locator('#netui button').tap();
+  await phone.waitForFunction(()=>SM.Net.error.includes('NÃO ENCONTRADA'),null,{timeout:20000});
+  await phone.screenshot({path:'/private/tmp/manos-mobile-lobby.png'});
+  if(errors.length)throw Error(errors.join('\n'));
+  await context.close();
+  return {viewport:'844x390 landscape / 390x844 portrait',simultaneous,move:after-before,touchDamage:damage,blurRelease:released,combatAtlasesLoaded:loaded,portraitLobby:true,pageErrors:errors};
+}
