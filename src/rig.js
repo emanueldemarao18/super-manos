@@ -79,7 +79,7 @@ SM.Rig = (() => {
     siu: { hip: [0, -50], lean: -10, head: -14, hF: [-4, 14], hB: [-14, 12], fF: [10, -2], fB: [-8, -2], mouth: 1, open: 1 },
     lose: { hip: [0, -26], lean: 40, head: 20, fF: [14, 0], fB: [-12, 0], hF: [8, 22], hB: [4, 24] },
   };
-  for (const k in P) P[k] = Object.assign({}, BASE, P[k]);
+  for (const k in P) P[k] = Object.assign({}, BASE, P[k], { sprite: k });
 
   const mixArr = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
   function mix(a, b, k) {
@@ -90,6 +90,7 @@ SM.Rig = (() => {
       const va = a[key], vb = b[key];
       o[key] = Array.isArray(va) ? mixArr(va, vb, k) : va + (vb - va) * k;
     }
+    o.sprite = k < 0.5 ? a.sprite : b.sprite;
     o.open = k < 0.5 ? a.open : b.open;
     o.mouth = k < 0.5 ? a.mouth : b.mouth;
     return o;
@@ -501,6 +502,10 @@ SM.Rig = (() => {
   // ---------- desenho completo ----------
   // opts: { flash: cor única, alpha, t (frames, para animar fitas/cabelo) }
   function draw(c, ch, pose, x, y, face, opts = {}) {
+    if (SM.Art && SM.Art.fight) {
+      SM.Art.fight(c, ch, pose, x, y, face, opts);
+      return solve(ch, pose);
+    }
     ctx = c;
     flat = opts.flash || null;
     const J = solve(ch, pose);
