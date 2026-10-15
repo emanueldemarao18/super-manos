@@ -3,6 +3,11 @@
 SM.Art = (() => {
   const base = document.currentScript ? new URL('../assets/fighters/', document.currentScript.src).href : 'assets/fighters/';
   const SHEETS = {
+    rodrigo: { file: 'rodrigo.png', frames: [
+      [33,11,293,353,.5], [397,11,329,351,.41], [763,14,357,348,.35], [1163,5,277,356,.33],
+      [20,371,360,335,.27], [431,435,244,266,.46], [783,370,277,337,.5], [1172,373,266,332,.57],
+      [61,706,233,317,.5], [414,692,279,382,.5], [737,952,407,121,.5], [1172,701,246,374,.5],
+    ] },
     alvaro: {"file":"alvaro.png","frames":[[25,7,298,353,0.5],[393,8,342,352,0.41],[761,11,371,351,0.35],[1155,4,288,356,0.33],[20,368,363,335,0.27],[448,440,247,258,0.46],[795,371,264,336,0.5],[1146,380,295,324,0.57],[91,704,194,315,0.5],[418,695,284,387,0.5],[737,957,393,119,0.5],[1162,705,258,376,0.5]]},
     cristiano: {"file":"cristiano.png","frames":[[23,11,302,350,0.5],[383,12,342,349,0.41],[775,15,365,346,0.35],[1168,6,279,353,0.33],[25,370,338,339,0.27],[413,439,249,261,0.46],[793,379,279,330,0.5],[1177,378,268,329,0.57],[88,711,193,308,0.5],[395,693,297,384,0.5],[719,963,443,107,0.5],[1192,701,246,380,0.5]]},
     cleusio: {"file":"cleusio.png","frames":[[21,6,291,359,0.5],[381,9,351,357,0.41],[765,13,374,353,0.35],[1162,5,280,354,0.33],[16,373,342,334,0.27],[424,444,248,260,0.46],[784,374,283,334,0.5],[1152,382,285,326,0.57],[93,703,189,305,0.5],[391,694,305,381,0.5],[730,955,411,120,0.5],[1170,693,265,383,0.5]]},
@@ -65,7 +70,7 @@ SM.Art = (() => {
     img.src = base + src;
     return img;
   };
-  for (const ch of SM.CHARACTERS) imgs.set(ch.id, load(ch.id + '.webp', () => {}));
+  for (const ch of SM.CHARACTERS) imgs.set(ch.id, load(ch.portrait || ch.id + '.webp', () => {}));
   const requested = new Set();
   function preload(ids) {
     for (const id of ids) {
@@ -93,7 +98,7 @@ SM.Art = (() => {
     const w = img.width / img.height * height;
     ctx.save(); ctx.globalAlpha *= alpha; ctx.translate(x,y);
     // Existing portraits face left; combat sheets face right.
-    ctx.scale(previews.has(id) ? face : -face,1);
+    ctx.scale(previews.has(id) ? face : face * (SM.charById(id).portraitFace || -1),1);
     ctx.drawImage(img,-w/2,-height,w,height); ctx.restore();
     return true;
   }

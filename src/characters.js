@@ -159,6 +159,21 @@ SM.CHARACTERS = [
     super: { type: 'beam', name: 'REMATE SUPREMO', color: '#ffb020', dmg: 340, ball: true },
     win: 'siu',
   },
+  {
+    id: 'rodrigo', name: 'Rodrigo', style: 'Boxe de Pressão', quote: 'VAMOS A ISTO!',
+    portrait: 'rodrigo.png', portraitFace: 1,
+    skin: '#b48363', hair: 'curly', hairColor: '#241711', beard: 'stubble',
+    body: { size: 1.04, bulk: 1.12, muscle: 1.1 },
+    outfit: { top: '#353535', style: 'vest', vest: '#702c3b', trim: '#c4b8b0', sleeves: 1, belt: '#171717', pants: '#292a2e', pantsCut: 'baggy', shoes: '#191919', gloves: '#e5d9c7', strap: '#292929' },
+    stats: { hp: 1040, walk: 1.0, power: 1.02 },
+    specials: [
+      { cmd: '236', btn: 'p', type: 'rush', name: 'DIRETO DE PRESSÃO', pose: 'rush2', color: '#dc7895', dmg: 100, speed: 7, dur: 16 },
+      { cmd: '623', btn: 'p', type: 'rising', name: 'GANCHO DECISIVO', color: '#dc7895', dmg: 115, height: 8.5 },
+      { cmd: '214', btn: 'p', type: 'counter', name: 'CONTRAGOLPE', color: '#dc7895', dmg: 110 },
+    ],
+    super: { type: 'barrage', name: 'COMBINAÇÃO FINAL', color: '#dc7895', dmg: 340 },
+    win: 'winCool',
+  },
 ];
 
 SM.charById = (id) => SM.CHARACTERS.find((c) => c.id === id) || SM.CHARACTERS[0];

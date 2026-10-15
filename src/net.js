@@ -1,7 +1,7 @@
 'use strict';
 // Host-authoritative WebRTC: guests send controls and receive game snapshots.
 SM.Net = (() => {
-  const VERSION = 2, PREFIX = 'supermanos-v2-', QUEUE = PREFIX + 'waiting';
+  const VERSION = 3, PREFIX = 'supermanos-v3-', QUEUE = PREFIX + 'waiting';
   const N = { role: null, code: '', connected: false, ready: false, searching: false, status: '', error: '', rtt: 0, delay: 0, remoteQ: [], lastRemote: 0, snap: null, events: [], pending: [], recording: false };
   let peer, conn, queuePeer, probe, generation = 0, lastPacket = 0, lastInput = 0, lastPing = 0;
   const timers = new Set();

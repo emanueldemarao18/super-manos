@@ -16,7 +16,7 @@ vm.runInContext(fs.readFileSync('src/net.js','utf8').split('// ---------- fotogr
 const N=SM.Net;
 function openHost(){N.host();const p=peers.at(-1);p.open=true;p.emit('open');const c=new Connection();p.emit('connection',c);c.emit('open');return {p,c};}
 function advance(ms){now+=ms;for(const [id,t] of [...timers])if(t.at<=now){timers.delete(id);t.fn();}}
-let {p,c}=openHost();assert.equal(N.connected,false,'Wait for protocol handshake');c.emit('data',{t:'hello',v:2});assert.equal(N.connected,true);
+let {p,c}=openHost();assert.equal(N.connected,false,'Wait for protocol handshake');c.emit('data',{t:'hello',v:3});assert.equal(N.connected,true);
 c.emit('data',{t:'i',h:8,p:8});assert.equal(N.nextRemote().held,8);advance(301);assert.equal(N.nextRemote().held,0,'Release stale remote input');
 for(let i=0;i<100;i++)c.emit('data',{t:'i',h:-1,p:-1});assert.equal(N.remoteQ.length,12);assert.equal(N.nextRemote().held,1023);
 let unsafe=false;SM.FX.unsafe=()=>unsafe=true;N.pending.push(['FX','unsafe',[]],null);N.replay();assert.equal(unsafe,false);
@@ -25,6 +25,6 @@ N.leave();c.emit('close');p.emit('error',{type:'network'});assert.equal(N.error,
 ({p,c}=openHost());advance(15001);assert.match(N.error,/EXPIROU/);
 N.host();advance(15001);assert.match(N.error,/SERVIDOR/);
 N.join('ABC');assert.match(N.error,/5 CARACTERES/);
-({p,c}=openHost());c.emit('data',{t:'hello',v:2});const busy=new Connection();p.emit('connection',busy);busy.emit('open');assert.equal(busy.sent[0].reason,'full');
+({p,c}=openHost());c.emit('data',{t:'hello',v:3});const busy=new Connection();p.emit('connection',busy);busy.emit('open');assert.equal(busy.sent[0].reason,'full');
 N.leave();assert.equal(timers.size,0);assert.equal(N.connected,false);
 console.log('net OK: handshake, version, room-full, timeout, cancellation, bounded input, stale controls, event whitelist');

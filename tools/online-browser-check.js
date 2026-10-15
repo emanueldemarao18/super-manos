@@ -6,7 +6,7 @@ async page => {
   await both(() => [...document.querySelectorAll('iframe')].every(f => f.contentWindow.SM?.Net.connected));
   const state = () => page.evaluate(() => [...document.querySelectorAll('iframe')].map(f => {
     const {App, Net} = f.contentWindow.SM;
-    return {role: Net.role, screen: App.S.screen, code: Net.code, connected: Net.connected, error: Net.error, fighters: App.S.battle?.fighters.map(p => ({x:p.x,hp:p.hp})), result:App.S.result};
+    return {role: Net.role, screen: App.S.screen, code: Net.code, connected: Net.connected, error: Net.error, fighters: App.S.battle?.fighters.map(p => ({id:p.ch.id,x:p.x,hp:p.hp})), result:App.S.result};
   }));
   const key = async (role, code, duration = 90) => {
     await page.evaluate(({role,code}) => { const w=[...document.querySelectorAll('iframe')].map(f=>f.contentWindow).find(w=>w.SM.Net.role===role); w.dispatchEvent(new w.KeyboardEvent('keydown',{code})); }, {role,code});
@@ -14,11 +14,13 @@ async page => {
     await page.evaluate(({role,code}) => { const w=[...document.querySelectorAll('iframe')].map(f=>f.contentWindow).find(w=>w.SM.Net.role===role); w.dispatchEvent(new w.KeyboardEvent('keyup',{code})); }, {role,code});
     await page.waitForTimeout(100);
   };
+  await key('host','ArrowLeft');
   await key('host','Enter'); await key('guest','Enter');
   await both(() => [...document.querySelectorAll('iframe')].every(f=>f.contentWindow.SM.App.S.screen==='stage'));
   await key('host','Enter');
   await both(() => [...document.querySelectorAll('iframe')].every(f=>f.contentWindow.SM.App.S.battle?.phase==='fight'));
   const before = await state();
+  if(!before.every(s=>s.fighters[0].id==='rodrigo'))throw Error('Rodrigo selection did not synchronize');
   await key('guest','KeyA',450);
   const moved = await state();
   if (!(moved[0].fighters[1].x < before[0].fighters[1].x-20)) throw Error('Remote movement did not reach host');
@@ -28,6 +30,7 @@ async page => {
   await page.waitForTimeout(700);
   const hit = await state();
   if (hit[0].fighters[0].hp>=1000 || hit[0].fighters[0].hp!==hit[1].fighters[0].hp) throw Error('Remote hit/damage did not synchronize');
+  await page.screenshot({path:'/private/tmp/manos-online-rodrigo-hit.png'});
   await page.evaluate(()=> {const s=[...document.querySelectorAll('iframe')].map(f=>f.contentWindow.SM).find(s=>s.Net.role==='host'); const fs=s.App.S.battle.fighters; fs[0].x=320; fs[1].x=360; fs[0].hp=1; fs[1].wins=1;});
   await key('guest','KeyG');
   await both(()=> [...document.querySelectorAll('iframe')].every(f=>f.contentWindow.SM.App.S.screen==='result'));
