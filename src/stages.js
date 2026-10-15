@@ -3,6 +3,8 @@
 
 SM.Stages = (() => {
   const W = SM.W, H = SM.H, F = SM.FLOOR;
+  const street = new Image();
+  street.src = new URL('../assets/stages/bairro.png', document.currentScript.src).href;
   const rnd = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 
   // desloca uma camada: k = 0 parada, 1 acompanha o chão
@@ -59,7 +61,7 @@ SM.Stages = (() => {
 
   const STAGES = {
     bairro: {
-      name: 'Bairro ao Pôr do Sol', music: 'bairro',
+      name: 'Bairro à Noite', music: 'bairro',
       draw(ctx, camX, t) {
         sky(ctx, [[0, '#2a1850'], [0.45, '#c8406a'], [0.8, '#ffa040'], [1, '#ffd080']]);
         // sol
@@ -294,6 +296,12 @@ SM.Stages = (() => {
   return {
     list,
     byId: (id) => list.find((s) => s.id === id) || list[0],
-    draw(ctx, stage, camX, t) { stage.draw(ctx, camX, t); },
+    draw(ctx, stage, camX, t) {
+      if (stage.id === 'bairro' && street.complete && street.naturalWidth) {
+        const width = W * 1.12, height = width * street.height / street.width;
+        const pan = SM.clamp((camX - W / 2) / (SM.STAGE_W - W), 0, 1);
+        ctx.drawImage(street, -(width - W) * pan, H - height, width, height);
+      } else stage.draw(ctx, camX, t);
+    },
   };
 })();
