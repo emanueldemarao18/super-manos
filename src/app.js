@@ -69,6 +69,7 @@ SM.App = (() => {
 
   // ---------- update ----------
   function update() {
+    if (SM.PWA && SM.PWA.blocked) { I.poll(); return; }
     S.t++;
     I.poll();
     SM.Net.recording = S.mode === 'online' && SM.Net.role === 'host';
@@ -601,6 +602,7 @@ SM.App = (() => {
   }
 
   function draw(ctx) {
+    if (SM.PWA) SM.PWA.update(S.screen);
     SM.NetUI.update(S.screen);
     SM.Touch.setScreen(S.screen);
     switch (S.screen) {
