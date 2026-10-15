@@ -8,6 +8,17 @@ async page => {
   await phone.evaluate(()=>{SM.App.S.mode='training';SM.App.S.picked=[0,1];SM.App.S.stageSel=0;SM.App.S.screen='fightNow';});
   await phone.waitForFunction(()=>SM.App.S.screen==='fight' && SM.Art.combatReady('emanuel') && SM.Art.combatReady('leonardo'));
   await phone.waitForTimeout(1800);
+  const viewportBefore = await phone.evaluate(() => ({scale:visualViewport.scale,width:innerWidth,height:innerHeight}));
+  for (let i=0;i<6;i++) await phone.locator('[data-b="lp"]').tap();
+  const zoom = await phone.evaluate(() => {
+    const blocked = ['touchmove','touchend','gesturestart','gesturechange'].every(type => {
+      const event = new Event(type,{bubbles:true,cancelable:true});
+      document.querySelector('[data-b="lp"]').dispatchEvent(event);
+      return event.defaultPrevented;
+    });
+    return {blocked,scale:visualViewport.scale,width:innerWidth,height:innerHeight};
+  });
+  if(!zoom.blocked || zoom.scale!==viewportBefore.scale || zoom.width!==viewportBefore.width || zoom.height!==viewportBefore.height) throw Error('Combat gestures changed the mobile viewport');
   const before=await phone.evaluate(()=>SM.App.S.battle.fighters[0].x);
   await phone.evaluate(()=> {
     const stick=document.querySelector('#touch .stick');
@@ -36,6 +47,12 @@ async page => {
   await phone.evaluate(()=>{SM.App.S.screen='join';SM.App.S.mode=null;SM.App.S.battle=null;});
   await phone.setViewportSize({width:390,height:844});
   await phone.waitForTimeout(300);
+  const lobbyGesture = await phone.evaluate(() => {
+    const event=new Event('touchend',{bubbles:true,cancelable:true});
+    document.querySelector('#netui .code').dispatchEvent(event);
+    return !event.defaultPrevented;
+  });
+  if(!lobbyGesture)throw Error('Combat zoom protection intercepted lobby input');
   await phone.locator('#netui .code').tap();await phone.locator('#netui .code').fill('ZZZZZ');
   const portrait=await phone.evaluate(()=>({rotate:getComputedStyle(document.querySelector('#rotate')).display,overflow:document.documentElement.scrollWidth>innerWidth,field:document.querySelector('#netui .code').getBoundingClientRect().toJSON()}));
   if(portrait.rotate!=='none'||portrait.overflow)throw Error('Portrait lobby blocked or overflowing');
@@ -44,5 +61,5 @@ async page => {
   await phone.screenshot({path:'/private/tmp/manos-mobile-lobby.png'});
   if(errors.length)throw Error(errors.join('\n'));
   await context.close();
-  return {viewport:'844x390 landscape / 390x844 portrait',simultaneous,move:after-before,touchDamage:damage,blurRelease:released,combatAtlasesLoaded:loaded,portraitLobby:true,pageErrors:errors};
+  return {viewport:'844x390 landscape / 390x844 portrait',zoom,simultaneous,move:after-before,touchDamage:damage,blurRelease:released,combatAtlasesLoaded:loaded,portraitLobby:true,pageErrors:errors};
 }

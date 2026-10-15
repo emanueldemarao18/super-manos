@@ -7,6 +7,7 @@ SM.Touch = (() => {
   let latch = 0, active = false;
 
   const css = `
+    body.fighting { touch-action: none; overscroll-behavior: none; }
     #touch { position: fixed; inset: 0; z-index: 5; pointer-events: none; display: none;
       user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none; font-family: "Russo One", sans-serif; }
     #touch.on { display: block; }
@@ -130,6 +131,14 @@ SM.Touch = (() => {
   addEventListener('blur', clear);
   addEventListener('resize', clear);
   document.addEventListener('visibilitychange', () => { if (document.hidden) clear(); });
+
+  // Safari can still zoom absolutely positioned controls despite touch-action: none.
+  const preventFightZoom = (e) => {
+    if (SM.App && SM.App.S.screen === 'fight' && e.cancelable) e.preventDefault();
+  };
+  for (const type of ['touchmove', 'touchend', 'gesturestart', 'gesturechange']) {
+    document.addEventListener(type, preventFightZoom, { passive: false });
+  }
 
   // ---------- ativação ----------
   function activate() {
