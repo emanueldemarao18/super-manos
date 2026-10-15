@@ -173,6 +173,7 @@ SM.App = (() => {
         break;
 
       case 'fight': {
+        if (online && p1 & B.back) { leaveToMenu(); break; }
         const bt = S.battle;
         if (!online && !S.paused && (p1 | p2) & (B.start | B.back) && bt.phase !== 'over') {
           S.paused = true; S.pauseSel = 0; S.showMoves = false; A.sfx('select');
@@ -218,20 +219,22 @@ SM.App = (() => {
 
       case 'online': {
         A.music('menu');
-        if (any & (B.up | B.down)) { S.onSel = 1 - S.onSel; A.sfx('select'); }
+        if (any & (B.up | B.down)) { S.onSel = (S.onSel + (any & B.up ? 2 : 1)) % 3; A.sfx('select'); }
         if (any & backBit) { A.sfx('back'); go('menu'); }
         if (any & confirmBit && S.t > 2) {
           A.sfx('confirm');
           SM.Net.error = '';
           if (S.onSel === 0) { SM.Net.host(); go('host'); }
-          else go('join');
+          else if (S.onSel === 1) go('join');
+          else { SM.Net.random(); go('search'); }
         }
         break;
       }
 
+      case 'search':
       case 'host':
         if (SM.Net.error) { netError(); break; }
-        if (SM.Net.connected) { startOnline(false); break; }
+        if (SM.Net.connected) { startOnline(SM.Net.role === 'guest'); break; }
         if (any & backBit) { SM.Net.leave(); A.sfx('back'); go('online'); }
         break;
 
@@ -241,7 +244,7 @@ SM.App = (() => {
         break;
 
       case 'netError':
-        if (S.t > 30 && any & (confirmBit | backBit)) { SM.Net.error = ''; go('menu'); }
+        if (S.t > 30 && any & (confirmBit | backBit)) { SM.Net.error = ''; go('online'); }
         break;
 
       case 'continue':
@@ -273,9 +276,9 @@ SM.App = (() => {
   }
 
   function netError() {
-    if (!SM.Net.error) SM.Net.error = 'LIGAÇÃO PERDIDA';
+    const error = SM.Net.error || 'LIGAÇÃO PERDIDA';
     SM.Net.leave();
-    SM.Net.error = SM.Net.error || 'LIGAÇÃO PERDIDA';
+    SM.Net.error = error;
     S.guest = false;
     S.mode = null;
     S.battle = null;
@@ -293,6 +296,7 @@ SM.App = (() => {
   // convidado: envia os botões e mostra o que o anfitrião manda
   function guestUpdate() {
     const N = SM.Net;
+    N.tick();
     if (!N.connected) { netError(); return; }
     N.send({ t: 'i', h: I.held(0), p: I.pressed(0) });
     if (I.pressed(0) & B.back) { N.leave(); S.guest = false; S.mode = null; go('menu'); return; }
@@ -559,18 +563,18 @@ SM.App = (() => {
   function drawOnline(ctx) {
     bg(ctx, '#0a1a30', '#102a50');
     U.big(ctx, 'ONLINE', W / 2, 34, 30, '#ffffff', '#40c0ff');
-    ['CRIAR SALA', 'ENTRAR NUMA SALA'].forEach((o, i) => {
-      const on = i === S.onSel, y = 92 + i * 26;
+    ['CRIAR SALA', 'ENTRAR NUMA SALA', 'ADVERSÁRIO ALEATÓRIO'].forEach((o, i) => {
+      const on = i === S.onSel, y = 78 + i * 27;
       if (on) { ctx.fillStyle = 'rgba(64,192,255,0.18)'; ctx.fillRect(W / 2 - 90, y - 10, 180, 20); }
       U.text(ctx, (on ? '▶ ' : '') + o, W / 2, y, { size: on ? 14 : 11, align: 'center', color: on ? '#80e0ff' : '#ccc' });
     });
-    U.text(ctx, S.onSel === 0 ? 'Recebes um código e um link para mandar a um amigo.' : 'Mete o código que o teu amigo te mandou.', W / 2, 160, { size: 7, align: 'center', color: '#9bd' });
+    U.text(ctx, ['Partilha o código ou o link com um amigo.', 'Escreve o código que o teu amigo te enviou.', 'Procura outro jogador que também esteja à espera.'][S.onSel], W / 2, 160, { size: 7, align: 'center', color: '#9bd' });
     if (!SM.Net.available()) U.text(ctx, 'Sem ligação à internet: o modo online não carregou.', W / 2, 180, { size: 7, align: 'center', color: '#f88' });
   }
 
   function drawHost(ctx) {
     bg(ctx, '#0a1a30', '#102a50');
-    U.big(ctx, 'SALA CRIADA', W / 2, 26, 22, '#ffffff', '#40c0ff');
+    U.big(ctx, SM.Net.ready ? 'SALA CRIADA' : 'A CRIAR SALA', W / 2, 26, 22, '#ffffff', '#40c0ff');
     U.text(ctx, 'CÓDIGO DA SALA', W / 2, 52, { size: 8, align: 'center', color: '#9bd' });
     if (SM.Net.code) U.big(ctx, SM.Net.code, W / 2, 80, 40, '#ffffff', '#ffd040');
     U.text(ctx, 'Manda o link (ou o código) ao teu amigo:', W / 2, 108, { size: 7, align: 'center', color: '#fff' });
@@ -592,8 +596,8 @@ SM.App = (() => {
   function drawNetError(ctx) {
     bg(ctx, '#200', '#000');
     U.big(ctx, 'ONLINE', W / 2, 60, 28, '#fff', '#f44');
-    U.text(ctx, SM.Net.error || 'LIGAÇÃO PERDIDA', W / 2, 110, { size: 10, align: 'center', color: '#fff' });
-    U.text(ctx, 'ENTER PARA VOLTAR AO MENU', W / 2, 150, { size: 8, align: 'center', color: '#ffe040' });
+    U.text(ctx, SM.Net.error || 'LIGAÇÃO PERDIDA', W / 2, 110, { size: 7, align: 'center', color: '#fff' });
+    U.text(ctx, 'ENTER PARA TENTAR NOVAMENTE', W / 2, 150, { size: 8, align: 'center', color: '#ffe040' });
   }
 
   function draw(ctx) {
@@ -602,6 +606,13 @@ SM.App = (() => {
     switch (S.screen) {
       case 'online': drawOnline(ctx); break;
       case 'host': drawHost(ctx); break;
+      case 'search':
+        bg(ctx, '#0a1a30', '#102a50');
+        U.big(ctx, 'ADVERSÁRIO ALEATÓRIO', W / 2, 46, 22, '#fff', '#40c0ff');
+        U.text(ctx, SM.Net.status, W / 2, 105, {size: 8, align: 'center', color: '#ffe040'});
+        U.text(ctx, 'São necessários dois jogadores a procurar.', W / 2, 140, {size: 7, align: 'center', color: '#9bd'});
+        U.text(ctx, 'ESC: CANCELAR', W / 2, 190, {size: 8, align: 'center', color: '#fff'});
+        break;
       case 'join': drawJoin(ctx); break;
       case 'netError': drawNetError(ctx); break;
       case 'title': drawTitle(ctx); break;

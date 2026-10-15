@@ -1,164 +1,183 @@
 'use strict';
-// Jogo online por WebRTC (PeerJS). Quem cria a sala é o anfitrião: corre o jogo inteiro e recebe
-// os comandos do convidado como jogador 2. O convidado envia os seus botões a cada frame e
-// desenha o estado que o anfitrião lhe manda (com os efeitos e sons gerados nesse frame).
-
+// Host-authoritative WebRTC: guests send controls and receive game snapshots.
 SM.Net = (() => {
-  const PREFIX = 'supermanos-';
-  const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  const N = {
-    role: null, // 'host' | 'guest' | null
-    code: '',
-    connected: false,
-    status: '',
-    error: '',
-    rtt: 0,
-    delay: 0, // frames de atraso local do anfitrião
-    remoteQ: [],
-    lastRemote: 0,
-    snap: null,
-    events: [],
-    recording: false,
-    pending: [],
-    closedT: 0,
-  };
-  let peer = null, conn = null, pingT = 0;
-
-  const genCode = () => Array.from({ length: 5 }, () => CODE_CHARS[Math.random() * CODE_CHARS.length | 0]).join('');
+  const VERSION = 2, PREFIX = 'supermanos-v2-', QUEUE = PREFIX + 'waiting';
+  const N = { role: null, code: '', connected: false, ready: false, searching: false, status: '', error: '', rtt: 0, delay: 0, remoteQ: [], lastRemote: 0, snap: null, events: [], pending: [], recording: false };
+  let peer, conn, queuePeer, probe, generation = 0, lastPacket = 0, lastInput = 0, lastPing = 0;
+  const timers = new Set();
+  const later = (fn, ms) => { const g = generation; const id = setTimeout(() => { timers.delete(id); if (g === generation) fn(); }, ms); timers.add(id); return id; };
+  const cancel = id => { clearTimeout(id); timers.delete(id); };
+  const close = obj => { try { if (obj) obj.destroy ? obj.destroy() : obj.close(); } catch {} };
   const available = () => typeof window.Peer === 'function';
-
-  function reset() {
-    Object.assign(N, { role: null, code: '', connected: false, status: '', rtt: 0, delay: 0, remoteQ: [], lastRemote: 0, snap: null, events: [], pending: [] });
-  }
-
+  const genCode = () => Array.from({length: 5}, () => 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[Math.random() * 31 | 0]).join('');
   function leave() {
-    try { if (conn) conn.close(); } catch { /* já fechada */ }
-    try { if (peer) peer.destroy(); } catch { /* já destruído */ }
-    conn = null;
-    peer = null;
-    reset();
-    N.error = '';
+    generation++;
+    for (const id of timers) clearTimeout(id);
+    timers.clear();
+    const old = [conn, probe, queuePeer, peer];
+    conn = probe = queuePeer = peer = null;
+    Object.assign(N, {role: null, code: '', connected: false, ready: false, searching: false, status: '', error: '', rtt: 0, delay: 0, remoteQ: [], lastRemote: 0, snap: null, events: [], pending: [], recording: false});
+    old.forEach(close);
   }
-
-  function fail(msg) {
-    const role = N.role;
-    leave();
-    N.error = msg;
-    N.lostRole = role;
-  }
-
+  function fail(msg) { const role = N.role; leave(); N.error = msg; N.lostRole = role; }
+  function raw(c, data) { try { if (c && c.open) c.send(data); } catch {} }
   function setup(c) {
     conn = c;
-    c.on('open', () => {
-      N.connected = true;
-      N.status = 'LIGADO!';
-      if (SM.Audio) SM.Audio.sfx('confirm');
+    const g = generation;
+    const current = () => g === generation && conn === c;
+    const deadline = later(() => { if (current() && !N.connected) fail('A LIGAÇÃO EXPIROU. TENTA OUTRA REDE OU SALA.'); }, 15000);
+    c.on('open', () => { if (current()) raw(c, {t: 'hello', v: VERSION}); });
+    c.on('data', m => {
+      if (!current() || !m || typeof m !== 'object') return;
+      if (m.t === 'reject') { fail(m.reason === 'version' ? 'ATUALIZA O JOGO NOS DOIS DISPOSITIVOS.' : 'SALA CHEIA. CRIA OUTRA SALA.'); return; }
+      if (m.t === 'hello') {
+        if (m.v !== VERSION) { raw(c, {t: 'reject', reason: 'version'}); fail('ATUALIZA O JOGO NOS DOIS DISPOSITIVOS.'); return; }
+        cancel(deadline);
+        N.connected = true; N.searching = false; N.status = 'LIGADO!';
+        lastPacket = lastInput = performance.now();
+        close(queuePeer); queuePeer = null; close(probe); probe = null;
+        if (SM.Audio) SM.Audio.sfx('confirm');
+        return;
+      }
+      if (N.connected) { lastPacket = performance.now(); onData(m); }
     });
-    c.on('data', onData);
-    c.on('close', () => { if (N.connected) fail('O OUTRO JOGADOR SAIU DA SALA'); });
-    c.on('error', () => fail('ERRO NA LIGAÇÃO'));
+    c.on('close', () => { if (current()) fail('O OUTRO JOGADOR SAIU DA SALA.'); });
+    c.on('error', () => { if (current()) fail('ERRO NA LIGAÇÃO. TENTA NOVAMENTE.'); });
   }
-
-  function host() {
-    if (!available()) { N.error = 'SEM INTERNET (NÃO CONSEGUI CARREGAR O MODO ONLINE)'; return; }
+  function start(role, code, random) {
     leave();
-    N.role = 'host';
-    N.code = genCode();
-    N.status = 'A CRIAR SALA...';
-    peer = new window.Peer(PREFIX + N.code, { debug: 0 });
-    peer.on('open', () => { N.status = 'À ESPERA DO OUTRO JOGADOR...'; });
-    peer.on('connection', (c) => {
-      if (conn) { c.on('open', () => c.close()); return; } // sala cheia
+    if (!available()) { N.error = 'O MODO ONLINE NÃO CARREGOU. ATUALIZA A PÁGINA.'; return; }
+    Object.assign(N, {role, code, searching: random, status: 'A LIGAR AO SERVIDOR...'});
+    const g = generation;
+    const p = peer = new window.Peer(PREFIX + (role === 'host' ? code : genCode()), {debug: 0});
+    const alive = () => generation === g && peer === p;
+    const deadline = later(() => fail('SERVIDOR INDISPONÍVEL. TENTA NOVAMENTE.'), 15000);
+    p.on('open', () => {
+      if (!alive()) return;
+      cancel(deadline); N.ready = true;
+      if (random) seek();
+      else if (role === 'guest') { N.status = 'A LIGAR À SALA ' + code + '...'; setup(p.connect(PREFIX + code, {reliable: true, serialization: 'json'})); }
+      else N.status = 'À ESPERA DO OUTRO JOGADOR...';
+    });
+    p.on('connection', c => {
+      if (!alive()) { close(c); return; }
+      if (conn || N.role !== 'host') { c.on('open', () => { raw(c, {t: 'reject', reason: 'full'}); later(() => close(c), 300); }); return; }
       setup(c);
     });
-    peer.on('error', (e) => {
-      if (e.type === 'unavailable-id') { host(); return; } // código já usado: gera outro
-      if (!N.connected) fail('NÃO FOI POSSÍVEL CRIAR A SALA (' + e.type + ')');
+    p.on('error', e => {
+      if (!alive()) return;
+      if (random && e.type === 'peer-unavailable' && !conn) { retrySearch(); return; }
+      if (e.type === 'unavailable-id') { start(role, role === 'host' ? genCode() : code, random); return; }
+      if (!N.connected) fail(e.type === 'peer-unavailable' ? 'SALA NÃO ENCONTRADA. CONFIRMA O CÓDIGO.' : 'SEM LIGAÇÃO AO SERVIDOR. TENTA NOVAMENTE.');
     });
-    peer.on('disconnected', () => { if (!N.connected && peer && !peer.destroyed) peer.reconnect(); });
+    p.on('disconnected', () => { if (alive() && !p.destroyed) { try { p.reconnect(); } catch {} } });
   }
-
+  function host() { start('host', genCode(), false); }
   function join(code) {
-    if (!available()) { N.error = 'SEM INTERNET (NÃO CONSEGUI CARREGAR O MODO ONLINE)'; return; }
-    leave();
     code = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (code.length < 4) { N.error = 'CÓDIGO INVÁLIDO'; return; }
-    N.role = 'guest';
-    N.code = code;
-    N.status = 'A LIGAR À SALA ' + code + '...';
-    peer = new window.Peer({ debug: 0 });
-    peer.on('open', () => setup(peer.connect(PREFIX + code, { reliable: true, serialization: 'json' })));
-    peer.on('error', (e) => {
-      if (e.type === 'peer-unavailable') fail('SALA ' + code + ' NÃO ENCONTRADA');
-      else if (!N.connected) fail('NÃO FOI POSSÍVEL LIGAR (' + e.type + ')');
+    if (code.length !== 5) { leave(); N.error = 'O CÓDIGO TEM 5 CARACTERES.'; return; }
+    start('guest', code, false);
+  }
+  function random() { start('host', genCode(), true); }
+  let searchTimer;
+  function retrySearch() {
+    if (!N.searching || conn) return;
+    const old = [probe, queuePeer]; probe = queuePeer = null; old.forEach(close);
+    cancel(searchTimer);
+    searchTimer = later(seek, 400 + Math.random() * 600);
+  }
+  function seek() {
+    if (!N.searching || conn || !peer) return;
+    N.status = 'À PROCURA DE ADVERSÁRIO...';
+    const q = queuePeer = new window.Peer(QUEUE, {debug: 0});
+    const current = () => queuePeer === q && N.searching;
+    const timeout = later(() => { if (current() && !q.open) retrySearch(); }, 10000);
+    q.on('open', () => { if (current()) { cancel(timeout); N.status = 'À ESPERA DE OUTRO JOGADOR ONLINE...'; } });
+    let reserved = false;
+    q.on('connection', c => {
+      c.on('data', m => {
+        if (!current() || !m || m.t !== 'find' || m.v !== VERSION) { close(c); return; }
+        if (reserved) { raw(c, {t: 'busy'}); return; }
+        reserved = true;
+        raw(c, {t: 'match', code: N.code, v: VERSION});
+        later(() => { if (current() && !conn) { reserved = false; close(c); } }, 12000);
+      });
     });
+    q.on('error', e => {
+      if (!current()) return;
+      cancel(timeout);
+      if (e.type !== 'unavailable-id') { fail('PESQUISA INDISPONÍVEL. TENTA CRIAR UMA SALA.'); return; }
+      queuePeer = null; close(q);
+      const c = probe = peer.connect(QUEUE, {reliable: true, serialization: 'json'});
+      const retry = later(() => { if (probe === c && !conn) retrySearch(); }, 5000);
+      c.on('open', () => raw(c, {t: 'find', v: VERSION}));
+      c.on('data', m => {
+        if (probe !== c || !N.searching || !m) return;
+        if (m.t === 'match' && m.v === VERSION && /^[A-Z0-9]{5}$/.test(m.code)) {
+          cancel(retry); N.role = 'guest'; N.code = m.code; N.status = 'ADVERSÁRIO ENCONTRADO. A LIGAR...';
+          setup(peer.connect(PREFIX + m.code, {reliable: true, serialization: 'json'}));
+        } else if (m.t === 'busy') { cancel(retry); retrySearch(); }
+      });
+      c.on('error', () => { if (probe === c && !conn) retrySearch(); });
+    });
+    q.on('disconnected', () => { if (current() && !conn) retrySearch(); });
   }
-
-  function send(msg) {
-    if (!conn || !N.connected) return;
-    // não acumula frames se a rede estiver lenta
-    const dc = conn.dataChannel;
-    if (msg.t === 's' && dc && dc.bufferedAmount > 128 * 1024) return;
-    try { conn.send(msg); } catch { /* ligação a fechar */ }
+  function send(m) {
+    if (!N.connected || !conn) return;
+    if (m.t === 's' && conn.dataChannel && conn.dataChannel.bufferedAmount > 128 * 1024) return;
+    raw(conn, m);
   }
-
+  function validSnapshot(m) {
+    if (!['select','stage','vs','fight','result'].includes(m.sc) || !Array.isArray(m.cu) || m.cu.length !== 2 || !Array.isArray(m.pk) || m.pk.length !== 2) return false;
+    const validIndex = i => Number.isInteger(i) && i >= 0 && i < SM.CHARACTERS.length;
+    if (!m.cu.every(validIndex) || !m.pk.every(i => i === null || validIndex(i))) return false;
+    if (!m.b) return m.sc !== 'fight' && m.sc !== 'result';
+    const b = m.b;
+    return Array.isArray(b.c) && b.c.length === 2 && b.c.every(id => SM.CHARACTERS.some(ch => ch.id === id)) &&
+      SM.Stages.list.some(s => s.id === b.st) && Array.isArray(b.f) && b.f.length === 2 &&
+      b.f.every(f => f && ['x','y','hp','f'].every(k => Number.isFinite(f[k]))) && Array.isArray(b.p) &&
+      (!b.fz || b.fz.s === 0 || b.fz.s === 1);
+  }
   function onData(m) {
-    if (!m || typeof m !== 'object') return;
-    switch (m.t) {
-      case 'i': // anfitrião: comandos do convidado
-        N.remoteQ.push(m);
-        break;
-      case 's': // convidado: estado do jogo
-        N.snap = m;
-        if (m.ev && m.ev.length) N.pending.push(...m.ev);
-        N.rtt = m.rtt || N.rtt;
-        break;
-      case 'ping':
-        send({ t: 'pong', ts: m.ts });
-        break;
-      case 'pong':
-        N.rtt = Math.round(performance.now() - m.ts);
-        N.delay = SM.clamp(Math.round(N.rtt / 2 / 16.7), 0, 6);
-        break;
+    if (m.t === 'i' && N.role === 'host') {
+      lastInput = performance.now();
+      N.remoteQ.push({h: (m.h | 0) & 1023, p: (m.p | 0) & 1023});
+      if (N.remoteQ.length > 12) N.remoteQ.shift();
+    } else if (m.t === 's' && N.role === 'guest' && validSnapshot(m)) {
+      N.snap = m;
+      if (Array.isArray(m.ev)) N.pending.push(...m.ev.slice(0, 100));
+      N.rtt = m.rtt || N.rtt;
+    } else if (m.t === 'ping') send({t: 'pong', ts: m.ts});
+    else if (m.t === 'pong' && Number.isFinite(m.ts)) {
+      N.rtt = Math.max(0, Math.round(performance.now() - m.ts));
+      N.delay = SM.clamp(Math.round(N.rtt / 2 / 16.7), 0, 6);
     }
   }
-
-  // anfitrião: próximo frame de comandos do convidado (junta toques se houver atraso acumulado)
   function nextRemote() {
     const q = N.remoteQ;
-    if (!q.length) return { held: N.lastRemote, pressed: 0 };
-    let m = q.shift();
-    let pressed = m.p;
+    if (!q.length) return {held: performance.now() - lastInput > 300 ? 0 : N.lastRemote, pressed: 0};
+    let m = q.shift(), pressed = m.p;
     while (q.length > 3) { m = q.shift(); pressed |= m.p; }
     N.lastRemote = m.h;
-    return { held: m.h, pressed };
+    return {held: m.h, pressed};
   }
-
-  // ---------- eventos visuais/sonoros reproduzidos no convidado ----------
-  const TRACK = { FX: ['spark', 'dust', 'trail', 'text', 'bolt', 'clear'], Audio: ['sfx', 'music'] };
-  for (const [obj, names] of Object.entries(TRACK)) {
-    for (const name of names) {
-      const orig = SM[obj][name];
-      SM[obj][name] = function (...args) {
-        if (N.recording) N.events.push([obj, name, args]);
-        return orig.apply(this, args);
-      };
-    }
+  const TRACK = {FX: ['spark', 'dust', 'trail', 'text', 'bolt', 'clear'], Audio: ['sfx', 'music']};
+  for (const [obj, names] of Object.entries(TRACK)) for (const name of names) {
+    const orig = SM[obj][name];
+    SM[obj][name] = function (...args) { if (N.recording) N.events.push([obj, name, args]); return orig.apply(this, args); };
   }
-
   function replay() {
-    for (const [obj, name, args] of N.pending) if (SM[obj] && SM[obj][name]) SM[obj][name](...args);
+    for (const e of N.pending) if (Array.isArray(e) && TRACK[e[0]] && TRACK[e[0]].includes(e[1]) && Array.isArray(e[2])) SM[e[0]][e[1]](...e[2]);
     N.pending.length = 0;
   }
-
-  // chamado a cada frame pela App
   function tick() {
-    if (N.role === 'host' && N.connected && ++pingT % 60 === 0) send({ t: 'ping', ts: performance.now() });
+    if (!N.connected) return;
+    const now = performance.now();
+    if (now - lastPacket > 12000) { fail('SEM RESPOSTA DO ADVERSÁRIO. LIGAÇÃO TERMINADA.'); return; }
+    if (now - lastPing > 1000) { lastPing = now; send({t: 'ping', ts: now}); }
   }
-
   const link = () => location.origin + location.pathname + '?sala=' + N.code;
-
-  return Object.assign(N, { host, join, leave, send, nextRemote, replay, tick, link, available });
+  return Object.assign(N, {host, join, random, leave, send, nextRemote, replay, tick, link, available});
 })();
 
 // ---------- fotografias do estado (anfitrião → convidado) ----------
